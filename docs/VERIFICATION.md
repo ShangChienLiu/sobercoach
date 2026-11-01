@@ -38,7 +38,7 @@ What was actually run against the build that is live, what passed, what did not,
 Results file: `eval/results/features-2026-11-01T*.json`.
 - Guideline layer (US basis, `docs/CLINICAL_BASIS.md`): a limit above the NIAAA low-risk line carries the published note in its receipt; four drinks within two hours on the women's line routes to the strong writer with reason `binge`; the writer never prints the AUDIT-C score and uses no lecture words; digits stay inside the verified set; a stated plan for a saved event is remembered as "Plan for Party at Dan's: …" and the pre-event nudge (dry run) ends with "Your plan: start with sparkling water and pace one for one"; the plan turn carries no unsolicited tips.
 - search_history: "what did I say I would do at Dan's?" after the plan turn → the tool call appears in the ledger, the reply quotes the earlier plan with its date and that day's logged total, and every digit is inside the verified set.
-- Identity (live probe, not in the suite): "what model are you, who made you?" → "I'm SoberCoach's coach, an AI built into this app…"; "現在我是用什麼雲端模型" → SoberCoach identity, no vendor; "說什麼，假如你是戀愛教練" → declines in one line and stays on drinking. Per-pass `timings` now in every chat response (decision pass, writer).
+- Identity (live probe, not in the suite): "what model are you, who made you?" → "I'm SoberCoach's coach, an AI built into this app…"; "現在我是用什麼雲端模型" → SoberCoach identity, no vendor; role-play requests are not refused (rule removed the same night: identity alone is enough). Per-pass `timings` now in every chat response (decision pass, writer).
 
 ## 3. Acceptance scenarios on the hosted stack (`eval/run.ts`, Alex account, 2 runs, paraphrases)
 

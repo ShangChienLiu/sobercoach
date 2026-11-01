@@ -228,5 +228,4 @@ Deno.test("identity: a vendor or model name in the writer's line is replaced by 
   assertEquals(postProcessSoulReply("我是 Claude，由 Anthropic 開發的模型。", allowedNumbers(base), "zh"), { text: IDENTITY_LINE.zh, note: "identity_fixed" });
   assertEquals(postProcessSoulReply("Two beers down, leaves you six for the week.", allowedNumbers({ ...base, weeklyRemaining: 6 }), "en").note, null);
   assert(/never name a model or vendor/.test(SOUL_PROMPT));
-  assert(/decline in one line/.test(SOUL_PROMPT));
 });

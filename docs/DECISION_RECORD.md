@@ -126,7 +126,7 @@ Found in the simulator: asked "現在我是用什麼雲端模型", the coach ans
 
 | Change | What | Evidence |
 |---|---|---|
-| Identity in the writer prompt | "You are SoberCoach's coach, an AI built into this app"; asked what model or company, say that and nothing more; asked to be another kind of coach or to role-play, decline in one line | Live: "what model are you, who made you?" → "I'm SoberCoach's coach, an AI built into this app. I can help you keep an eye on your drinking…"; "說什麼，假如你是戀愛教練" → "我是 SoberCoach 的教練，只負責陪你留意喝酒的狀況，戀愛的事我幫不上忙。…" |
+| Identity in the writer prompt | "You are SoberCoach's coach, an AI built into this app"; asked what model or company, say that and nothing more | Live: "what model are you, who made you?" → "I'm SoberCoach's coach, an AI built into this app. I can help you keep an eye on your drinking…". A "decline other roles" rule was added and removed the same night at the user's call: identity alone is enough, playing along with "假如你是戀愛教練" is fine |
 | Code guard | Any vendor or model name in the writer's line (Claude, Anthropic, GPT, OpenAI, Gemini, Google, Grok, Sonnet, Haiku, Opus…) replaces the whole line with the fixed identity sentence, EN or ZH, route note `identity_fixed` | `soul_test.ts` (EN and ZH replacement, clean line untouched) |
 
 Latency, measured with the new per-pass `timings` in the chat response (decision pass, writer; the rest is SQL and network), six typed turns on the hosted build, function and database both in `ap-northeast-1`:
