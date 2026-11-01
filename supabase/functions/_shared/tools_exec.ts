@@ -12,6 +12,7 @@ import { addDays, eveningOfServiceDay, instantAtLocal, isoDate, labelEventTime, 
 import type { ToolCall } from "./prompt.ts";
 import { type EventKind, eventKindFor, nudgeAt, resolveEventDateTime } from "./events.ts";
 import type { PlaceholderValues } from "./placeholders.ts";
+import { searchHistory } from "./history.ts";
 
 export interface EntryCard {
   entry_id: string;
@@ -34,7 +35,7 @@ export interface ToolOutcome {
   placeholders?: PlaceholderValues;
   summary?: SummaryResult;
   /** Read results that need a second model pass; `line` is the code-rendered fact line. */
-  followup?: { kind: "reminders"; data: unknown; line: string };
+  followup?: { kind: "reminders" | "history"; data: unknown; line: string };
   fallbackKind: "logged" | "corrected" | "undone" | "event" | "goal" | "pref" | "generic";
   escalate?: string;
 }
@@ -136,6 +137,10 @@ export async function executeTool(db: Db, ctx: TurnContext, rawCall: ToolCall): 
       case "get_summary": return await getSummary(db, ctx, str(call.args.range) ?? "week");
       case "get_reminders": return await getReminders(db, ctx);
       case "remember": return await remember(db, ctx, str(call.args.text) ?? str(call.args.reason));
+      case "search_history": {
+        const found = await searchHistory(db, ctx, str(call.args.text) ?? str(call.args.title) ?? ctx.userMessage ?? "");
+        return { name: "search_history", ok: true, fallbackKind: "generic", followup: { kind: "history", data: { terms: found.terms, hits: found.hits }, line: found.line } };
+      }
       case "escalate": return { name: "escalate", ok: true, fallbackKind: "generic", escalate: str(call.args.reason) ?? "model_requested" };
     }
   } catch (error: unknown) {

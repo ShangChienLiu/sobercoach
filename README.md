@@ -39,6 +39,7 @@ Every message goes through a **deterministic harness** written in plain TypeScri
 | `change that one` with two candidates | Code asks *which one?* with tappable choices. Nothing is written | $0 |
 | a blackout night, typed at 1 a.m. | `late_night` / `over_goal` / `rapid_pacing` rules route to the strong writer (capped at 10 a day, and never past the $0.15 daily user budget) | ~$0.005 |
 | `I'm trying to cut down for my daughter` | Stated reasons and intentions are stored verbatim in `coach_memory`; the writer never offers to remember | ~$0.003 |
+| `what did I say about Dan's?` | `search_history` tool: code searches the user's own earlier messages and prints dated hits with that day's logged total; the writer adds one line. No vector store (`docs/MEMORY_FIELD.md`) | ~$0.01 |
 | `party at Dan's on Saturday` / `remind me Friday to call mom` | Standing intents with deterministic defaults; pushes go through nine logged gates | ~$0.003 |
 | `stop reminding me` | One consent flip per category, done in code | $0 |
 | driving, withdrawal, crisis keywords | Fixed safety card from `safety.ts`. No model call | $0 |
@@ -95,9 +96,9 @@ Every model call is a row in `messages` with model, route reason, tokens in / ca
 
 | Layer | Evidence |
 |---|---|
-| Pure logic | 79 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
+| Pure logic | 84 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
 | Schema | `supabase/tests/schema_test.sql`: rollover, NO_DATA, undo, RLS isolation on all 7 tables, cascade delete, reminder claim |
-| Acceptance on the deployed stack | `eval/run.ts` 41/41 on all 12 scenarios (208/220 on a double run; misses are the strong cap doing its job); `eval/features.ts` 56/56 (incl. the guideline layer); `eval/core_probes.ts` 9/9 |
+| Acceptance on the deployed stack | `eval/run.ts` 41/41 on all 12 scenarios (208/220 on a double run; misses are the strong cap doing its job); `eval/features.ts` 59/59 (incl. the guideline layer and search_history); `eval/core_probes.ts` 9/9 |
 | Mock gateway | 330/330 checks with `OPENROUTER_API_KEY=mock`, so the whole harness runs at $0 |
 | iOS | 4 unit tests and the XCUITest journey (sign in → `2 beers` → `actually it was 3` → undo → Today) on the iPhone 17 simulator against the hosted backend |
 | Voice | Strict rubric 4.06 / 5 on the deployed build (coaching turns 4.23). Blind pairwise against a real Grok Bot transcript: 24% win-or-tie under a generic judge, 55% once the judge knows the product's rules. Rejudging the same transcript moves up to 17 points, so these are ranges |
@@ -140,7 +141,7 @@ supabase start && supabase db reset         # migrations + seeded test accounts
 supabase functions serve --env-file supabase/.env
 
 # Tests that need no network
-make test-functions                          # 79 Deno tests + deno check
+make test-functions                          # 84 Deno tests + deno check
 ./supabase/tests/run_local.sh                # SQL assertions
 
 # iOS

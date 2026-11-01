@@ -111,6 +111,30 @@ do $$ begin
   assert public.claim_reminder('d1000000-0000-0000-0000-000000000001') = true, 'stale claim can be retaken';
 end $$;
 
+-- search_history: substring match per term, ranked by matches then recency, with the day's total
+insert into public.messages (user_id, role, content, created_at) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','user','at Dan''s I will start with sparkling water', now() - interval '7 days'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','user','had 4 beers at Dan''s party and felt awful', now() - interval '14 days'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','user','what did I say about Dan', now()),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','user','Dan again', now() - interval '1 day'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','user','上次在 Dan 家喝太多', now() - interval '20 days');
+insert into public.drink_entries (user_id, beverage, count, std_drinks_nominal, service_date, occurred_at)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','beer',4,4.0,((now() - interval '14 days') at time zone 'Asia/Taipei' - interval '4 hours')::date, now() - interval '14 days');
+do $$ declare r record; n integer := 0; begin
+  for r in select * from public.search_messages('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', array['dan','party'], 'what did I say about Dan', 'Asia/Taipei', 4, 5) loop
+    n := n + 1;
+    if n = 1 then
+      assert r.matched = 2 and r.content like 'had 4 beers%', 'best match first: ' || r.content;
+      assert r.std_drinks = 4.0, 'hit carries that day''s verified total';
+    end if;
+    assert r.content <> 'what did I say about Dan', 'the current message is excluded';
+    assert r.content <> 'Dan again', 'other users never appear';
+  end loop;
+  assert n = 3, 'three own hits incl. the CJK one, got ' || n;
+  assert (select count(*) from public.search_messages('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', array['家喝'], null, 'Asia/Taipei', 4, 5)) = 1, 'CJK substring matches';
+  assert (select count(*) from public.search_messages('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', array['wedding'], null, 'Asia/Taipei', 4, 5)) = 0, 'no match is empty';
+end $$;
+
 -- Cascade delete
 delete from auth.users where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 do $$ begin

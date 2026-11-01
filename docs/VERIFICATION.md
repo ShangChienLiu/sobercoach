@@ -1,4 +1,4 @@
-# Verification record (2026-11-01, deployed chat version 59, evaluate-triggers version 20)
+# Verification record (2026-11-01, deployed chat version 60, evaluate-triggers version 20)
 
 What was actually run against the build that is live, what passed, what did not, and what cannot be verified from this machine. Every number below comes from a command listed in `docs/manual` section C or from the files named.
 
@@ -6,13 +6,13 @@ What was actually run against the build that is live, what passed, what did not,
 
 | Suite | Result |
 |---|---|
-| `deno test` in `supabase/functions/_shared` (service day, safety regex, fast path, pre-flight routing, envelope, SOUL guard and routing, dreaming inputs, reasoning flags, fragment cut, NIAAA thresholds, AUDIT-C bands, guideline escalation, MI prompt rules, event plan lookup) | 79 / 79 (6 added on 2026-11-01 for the routing revision: model defaults and fallback chains, user-spend RPC wrapper incl. fail-closed, budget routing, writer plan) |
+| `deno test` in `supabase/functions/_shared` (service day, safety regex, fast path, pre-flight routing, envelope, SOUL guard and routing, dreaming inputs, reasoning flags, fragment cut, NIAAA thresholds, AUDIT-C bands, guideline escalation, MI prompt rules, event plan lookup) | 84 / 84 (6 added on 2026-11-01 for the routing revision: model defaults and fallback chains, user-spend RPC wrapper incl. fail-closed, budget routing, writer plan; 5 for search_history: term extraction, English and Chinese fact lines, empty case, snippet cut, tool registration) |
 | `deno check` on both edge functions | clean (gates every deploy since the one regression on 2026-10-31 22:20) |
-| `supabase/tests/schema_test.sql` (rollover, exact vs nominal, NO_DATA, undo, RLS isolation, cascade delete, spend window, reminder claim) | all assertions passed on the Postgres fallback runner; the local Supabase container is broken (see manual section G) |
+| `supabase/tests/schema_test.sql` (rollover, exact vs nominal, NO_DATA, undo, RLS isolation, cascade delete, spend window, reminder claim, search_messages ranking and isolation) | all assertions passed on the Postgres fallback runner; the local Supabase container is broken (see manual section G) |
 
 ## 2. Every AI behaviour, end to end on the hosted stack (`eval/features.ts`, Blake account)
 
-56 / 56 pass on chat v59 after the routing revision ($0.089 of model calls, up from $0.058 on v52 because the strong decision retries now run on Sonnet; one earlier run on v59 was 55 / 56 only because the dream pass wrote the profile in Chinese and the check looked for English words, fixed in the check). 56 / 56 on v52; 48 / 48 on v51 before the guideline layer, 43 / 43 before the 01:50 hardening. Each row is one real request to the deployed function with the real models:
+59 / 59 pass on chat v60 with the search_history tool ($0.060 of model calls; a first run on v60 was 58 / 59 because the injection check forbade every digit and the coach offered the user's own verified week total, which is not foreign data; the check now accepts the user's own figures only). 56 / 56 on v59 after the routing revision ($0.089; one earlier run was 55 / 56 only because the dream pass wrote the profile in Chinese and the check looked for English words, fixed in the check). 56 / 56 on v52; 48 / 48 on v51 before the guideline layer, 43 / 43 before the 01:50 hardening. Each row is one real request to the deployed function with the real models:
 
 - Typed greeting gets a complete line (no fragment, no 500).
 - Regex fast path writes; the writer speaks; receipt lives in the card; zero questions; no unverified digits.
@@ -37,6 +37,7 @@ What was actually run against the build that is live, what passed, what did not,
 
 Results file: `eval/results/features-2026-11-01T*.json`.
 - Guideline layer (US basis, `docs/CLINICAL_BASIS.md`): a limit above the NIAAA low-risk line carries the published note in its receipt; four drinks within two hours on the women's line routes to the strong writer with reason `binge`; the writer never prints the AUDIT-C score and uses no lecture words; digits stay inside the verified set; a stated plan for a saved event is remembered as "Plan for Party at Dan's: …" and the pre-event nudge (dry run) ends with "Your plan: start with sparkling water and pace one for one"; the plan turn carries no unsolicited tips.
+- search_history: "what did I say I would do at Dan's?" after the plan turn → the tool call appears in the ledger, the reply quotes the earlier plan with its date and that day's logged total, and every digit is inside the verified set.
 
 ## 3. Acceptance scenarios on the hosted stack (`eval/run.ts`, Alex account, 2 runs, paraphrases)
 
