@@ -13,6 +13,8 @@ struct RootView: View {
                 AuthView()
             case .needsAgeGate:
                 AgeGateView()
+            case .needsScreening:
+                ScreeningView()
             case .ready:
                 mainTabs
             }

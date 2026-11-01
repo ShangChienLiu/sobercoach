@@ -2,6 +2,7 @@
 // Every write is reversible; code renders the confirmation line and fills
 // every number after the commit.
 
+import { goalNote } from "./guidelines.ts";
 import type { Db, DrinkEntry, EventRow } from "./db.ts";
 import { toNumber } from "./db.ts";
 import type { TurnContext } from "./context.ts";
@@ -438,7 +439,7 @@ export async function setGoal(db: Db, ctx: TurnContext, weeklyLimit: number | nu
     name: "set_goal",
     ok: true,
     fallbackKind: "goal",
-    confirmation: T[ctx.lang].goal(weeklyLimit),
+    confirmation: [T[ctx.lang].goal(weeklyLimit), goalNote(weeklyLimit, ctx.profile.sex_for_guidelines ?? null, ctx.lang)].filter(Boolean).join(" "),
     placeholders: { weekly_limit: `${weeklyLimit}` },
   };
 }

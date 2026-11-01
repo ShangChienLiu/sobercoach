@@ -11,8 +11,8 @@
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Edge%20Functions-3FCF8E?logo=supabase&logoColor=white">
   <img alt="Deno" src="https://img.shields.io/badge/Deno-Edge%20runtime-000000?logo=deno&logoColor=white">
   <img alt="Models" src="https://img.shields.io/badge/Claude%20Sonnet%20%2F%20Haiku%205.5-via%20OpenRouter%20ZDR-D97757">
-  <img alt="Tests" src="https://img.shields.io/badge/unit%20tests-63%20passing-brightgreen">
-  <img alt="Hosted acceptance" src="https://img.shields.io/badge/hosted%20acceptance-48%2F48-brightgreen">
+  <img alt="Tests" src="https://img.shields.io/badge/unit%20tests-73%20passing-brightgreen">
+  <img alt="Hosted acceptance" src="https://img.shields.io/badge/hosted%20acceptance-56%2F56-brightgreen">
 </p>
 
 <p align="center">
@@ -94,9 +94,9 @@ Every model call is a row in `messages` with model, route reason, tokens in / ca
 
 | Layer | Evidence |
 |---|---|
-| Pure logic | 63 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
+| Pure logic | 73 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
 | Schema | `supabase/tests/schema_test.sql`: rollover, NO_DATA, undo, RLS isolation on all 7 tables, cascade delete, reminder claim |
-| Acceptance on the deployed stack | `eval/run.ts` 41/41 on all 12 scenarios (208/220 on a double run; misses are the strong cap doing its job); `eval/features.ts` 48/48; `eval/core_probes.ts` 9/9 |
+| Acceptance on the deployed stack | `eval/run.ts` 41/41 on all 12 scenarios (208/220 on a double run; misses are the strong cap doing its job); `eval/features.ts` 56/56 (incl. the guideline layer); `eval/core_probes.ts` 9/9 |
 | Mock gateway | 330/330 checks with `OPENROUTER_API_KEY=mock`, so the whole harness runs at $0 |
 | iOS | 4 unit tests and the XCUITest journey (sign in → `2 beers` → `actually it was 3` → undo → Today) on the iPhone 17 simulator against the hosted backend |
 | Voice | Strict rubric 4.06 / 5 on the deployed build (coaching turns 4.23). Blind pairwise against a real Grok Bot transcript: 24% win-or-tie under a generic judge, 55% once the judge knows the product's rules. Rejudging the same transcript moves up to 17 points, so these are ranges |
@@ -104,9 +104,13 @@ Every model call is a row in `messages` with model, route reason, tokens in / ca
 
 Full record: `docs/VERIFICATION.md`. Claim-to-code-to-evidence matrix: `docs/CORE_AUDIT.md`.
 
+## Clinical basis
+
+The coaching rules are tied to published US sources and implemented as code: NIAAA standard drink and low-risk, binge and heavy-day lines (sex-specific, conservative when unknown); AUDIT-C screening at onboarding per the USPSTF 2018 recommendation; motivational-interviewing rules from SAMHSA TIP 35 in the writer prompt (reflect, affirm effort, ask before advising); Marlatt's lapse-is-not-relapse and a stated coping plan quoted in the pre-event nudge. Crossed lines route the turn to the strong writer and may be named once, never as a lecture. Mapping of each rule to code and test: `docs/CLINICAL_BASIS.md`.
+
 ## What is not proven
 
-No human has rated the coaching copy; every voice score is a model judging a model, and the 75% win-or-tie target was not reached. Push delivery is unverified end to end (APNs secrets are placeholders; the gate trace and the reminder log are). The safety text is US-centric and still needs the Taiwan lines (1925, 119). TestFlight is blocked on an Apple team migration. A real release needs a privacy policy, a data-processing review for the model provider and a clinician review of the fixed safety messages.
+No human has rated the coaching copy; every voice score is a model judging a model, and the 75% win-or-tie target was not reached. Push delivery is unverified end to end (APNs secrets are placeholders; the gate trace and the reminder log are). The safety and screening text follow US sources and have not been reviewed by a clinician. TestFlight is blocked on an Apple team migration. A real release needs a privacy policy, a data-processing review for the model provider and a clinician review of the fixed safety messages.
 
 ## Repository layout
 
@@ -160,4 +164,5 @@ deno run -A eval/run.ts      --url https://<ref>.supabase.co --anon "$SUPABASE_A
 - `docs/DECISION_RECORD.md`: every trade-off with the measurement that decided it
 - `docs/VOICE.md`: how the writer is held to the ledger, and the benchmark against Dots, Muse and Grok Bot
 - `docs/COST_MODEL.md`: where the $4.50 ceiling comes from
+- `docs/CLINICAL_BASIS.md`: which US guideline each rule comes from, and where it lives in code
 - `docs/VERIFICATION.md` and `docs/CORE_AUDIT.md`: what ran, what passed, what did not

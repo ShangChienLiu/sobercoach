@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var memory: String = ""
     @State private var soulProfile: String = ""
+    @State private var showScreening = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,22 @@ struct SettingsView: View {
                         .onChange(of: weeklyLimit) { _, v in Task { try? await state.repo.updateProfile(["weekly_limit": .double(v)]); await state.refresh() } }
                     Text("A U.S. standard drink is 14 g of alcohol: 12 oz of 5% beer, 5 oz of 12% wine, 1.5 oz of 40% spirits.")
                         .font(.caption).foregroundStyle(.secondary)
+                    let t = Guidelines.thresholds(sex: state.profile?.sexForGuidelines)
+                    Text(weeklyLimit > Double(t.perWeek)
+                         ? "Above the NIAAA low-risk line for you (\(t.perWeek) a week, \(t.perDay) on any day). The coach says so once, never as a lecture."
+                         : "Within the NIAAA low-risk line for you (\(t.perWeek) a week, \(t.perDay) on any day).")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("Screening") {
+                    if let score = state.profile?.auditCScore {
+                        let band = Guidelines.band(score: score, sex: state.profile?.sexForGuidelines)
+                        LabeledContent("AUDIT-C", value: "\(score) of 12, \(band.rawValue)")
+                        Text(Guidelines.bandText(band)).font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("Not taken yet.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Button(state.profile?.auditCScore == nil ? "Take the 3-question check-in" : "Retake") { showScreening = true }
+                    Text("USPSTF recommends this screen for every adult. The coach reads the result but never diagnoses or repeats it.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Service day") {
                     Stepper("Day rolls over at \(rollover):00", value: $rollover, in: 0...12)
@@ -76,6 +93,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .sheet(isPresented: $showScreening) { ScreeningView(asSheet: true).environmentObject(state) }
             .onAppear { syncFromProfile(); Task { await reloadMemory() } }
             .refreshable { await reloadMemory() }
             // A reset from the Sandbox, or a dream pass finishing, changes both sections; reload whenever the app reports something.

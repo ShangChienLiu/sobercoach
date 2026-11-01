@@ -49,3 +49,21 @@ export const EVENT_PREP_LEAD_MS = 3 * 60 * 60 * 1000;
 export function nudgeAt(startsAt: Date, kind: EventKind): Date {
   return kind === "general_reminder" ? startsAt : new Date(startsAt.getTime() - EVENT_PREP_LEAD_MS);
 }
+
+const PLAN_LINE = /^(?:plan for|plan:|計畫)\s*(.+?)\s*[:：]\s*(.+)$/i;
+const STOP = new Set(["at","the","a","an","with","for","on","in","party","dinner","drinks","night","out","of","and","my","s","聚餐","聚會","派對"]);
+function words(t: string): string[] {
+  return t.toLowerCase().replace(/['’]s\b/g, "").split(/[^a-z0-9\u4e00-\u9fff]+|(?=[\u4e00-\u9fff])/).map((w) => w.trim()).filter((w) => w && !STOP.has(w));
+}
+
+/** The latest remembered "Plan for <event>: <their words>" whose event shares a word with the title; the nudge quotes it. */
+export function planFor(memorySummary: string, title: string): string | null {
+  const titleWords = new Set(words(title));
+  const lines = memorySummary.split("\n").map((l) => l.replace(/^[-•]\s*/, "").trim()).filter(Boolean);
+  for (const line of [...lines].reverse()) {
+    const m = PLAN_LINE.exec(line);
+    if (!m) continue;
+    if (words(m[1]).some((w) => titleWords.has(w))) return m[2].trim();
+  }
+  return null;
+}

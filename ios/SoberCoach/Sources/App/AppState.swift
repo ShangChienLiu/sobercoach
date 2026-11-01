@@ -6,7 +6,7 @@ import SwiftUI
 /// Totals come from the server; a day with no rows is NO_DATA, never zero.
 @MainActor
 final class AppState: ObservableObject {
-    enum Phase: Equatable { case loading, signedOut, needsAgeGate, ready }
+    enum Phase: Equatable { case loading, signedOut, needsAgeGate, needsScreening, ready }
 
     @Published var phase: Phase = .loading
     @Published var profile: Profile?
@@ -19,6 +19,8 @@ final class AppState: ObservableObject {
     @Published var simulatedNow: Date?
     @Published var simulateOutage = false
     @Published var toast: String?
+    /// "Not now" on the screening screen: skip for this launch only (USPSTF recommends screening every adult, so it returns next launch).
+    @Published var screeningSkipped = false
 
     let repo = DataRepo()
     private var authTask: Task<Void, Never>?
@@ -61,12 +63,30 @@ final class AppState: ObservableObject {
             if p.isTest && CommandLine.arguments.contains("--ui-test-reset") {
                 try await repo.resetTestData()
             }
-            phase = p.ageConfirmed ? .ready : .needsAgeGate
-            if p.ageConfirmed { await refresh() }
+            phase = !p.ageConfirmed ? .needsAgeGate : (p.auditCScore == nil && !screeningSkipped) ? .needsScreening : .ready
+            if phase == .ready { await refresh() }
         } catch {
             lastError = error.localizedDescription
             phase = .signedOut
         }
+    }
+
+    func finishScreening(answers: [Int]?, sex: String?, weeklyLimit: Double?) async {
+        do {
+            if let answers {
+                var patch: [String: AnyJSON] = [
+                    "audit_c_score": .integer(answers.reduce(0, +)),
+                    "audit_c_answers": .array(answers.map { .integer($0) }),
+                    "audit_c_at": .string(ISO8601DateFormatter().string(from: Date())),
+                    "sex_for_guidelines": sex.map { .string($0) } ?? .null,
+                ]
+                if let weeklyLimit { patch["weekly_limit"] = .double(weeklyLimit) }
+                try await repo.updateProfile(patch)
+            } else {
+                screeningSkipped = true
+            }
+            await loadAfterSignIn()
+        } catch { lastError = error.localizedDescription }
     }
 
     func confirmAge() async {

@@ -15,12 +15,16 @@ struct Profile: Codable, Equatable {
     var ageConfirmed: Bool
     var apnsToken: String?
     var lastOpenedAt: Date?
+    var sexForGuidelines: String?
+    var auditCScore: Int?
+    var auditCAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id", displayName = "display_name", timezone
         case rolloverHour = "rollover_hour", goalType = "goal_type", weeklyLimit = "weekly_limit"
         case quietStart = "quiet_start", quietEnd = "quiet_end", isTest = "is_test"
         case ageConfirmed = "age_confirmed", apnsToken = "apns_token", lastOpenedAt = "last_opened_at"
+        case sexForGuidelines = "sex_for_guidelines", auditCScore = "audit_c_score", auditCAt = "audit_c_at"
     }
 }
 

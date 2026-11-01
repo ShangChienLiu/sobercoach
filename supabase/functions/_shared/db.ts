@@ -23,6 +23,10 @@ export interface Profile {
   soul_profile?: string | null;
   soul_profile_updated_at?: string | null;
   turns_since_dream?: number | null;
+  /** Guideline layer (US basis): sex for NIAAA lines, AUDIT-C from onboarding. */
+  sex_for_guidelines?: "male" | "female" | null;
+  audit_c_score?: number | null;
+  audit_c_at?: string | null;
 }
 
 export interface DrinkEntry {

@@ -1,4 +1,4 @@
-# Verification record (2026-11-01, deployed chat version 51, evaluate-triggers version 8)
+# Verification record (2026-11-01, deployed chat version 52, evaluate-triggers version 14)
 
 What was actually run against the build that is live, what passed, what did not, and what cannot be verified from this machine. Every number below comes from a command listed in `docs/manual` section C or from the files named.
 
@@ -6,13 +6,13 @@ What was actually run against the build that is live, what passed, what did not,
 
 | Suite | Result |
 |---|---|
-| `deno test` in `supabase/functions/_shared` (service day, safety regex, fast path, pre-flight routing, envelope, SOUL guard and routing, dreaming inputs, reasoning flags, fragment cut) | 60 / 60 |
+| `deno test` in `supabase/functions/_shared` (service day, safety regex, fast path, pre-flight routing, envelope, SOUL guard and routing, dreaming inputs, reasoning flags, fragment cut, NIAAA thresholds, AUDIT-C bands, guideline escalation, MI prompt rules, event plan lookup) | 73 / 73 |
 | `deno check` on both edge functions | clean (gates every deploy since the one regression on 2026-10-31 22:20) |
 | `supabase/tests/schema_test.sql` (rollover, exact vs nominal, NO_DATA, undo, RLS isolation, cascade delete, spend window, reminder claim) | all assertions passed on the Postgres fallback runner; the local Supabase container is broken (see manual section G) |
 
 ## 2. Every AI behaviour, end to end on the hosted stack (`eval/features.ts`, Blake account)
 
-48 / 48 pass after the 01:50 hardening ($0.057 of model calls; 43 / 43 before it). Each row is one real request to the deployed function with the real models:
+56 / 56 pass on chat v52 ($0.058 of model calls; 48 / 48 on v51 before the guideline layer, 43 / 43 before the 01:50 hardening). Each row is one real request to the deployed function with the real models:
 
 - Typed greeting gets a complete line (no fragment, no 500).
 - Regex fast path writes; the writer speaks; receipt lives in the card; zero questions; no unverified digits.
@@ -36,6 +36,7 @@ What was actually run against the build that is live, what passed, what did not,
 - Hardening of 2026-11-01 01:50 (after the "Notify me on November 1" report): a dated reminder with no time is saved as `general_reminder` at 12:00 local (`Saved reminder "…"`), the writer confirms the receipt instead of refusing, a weekday reminder keeps the user's words, the reminders fact line shows it at its own time, and `client_timezone` on the request updates the profile. Trigger check as Blake with the clock jumped to the reminder's time: `evaluate-triggers` produced `Reminder: call mom (Fri 12:00 PM).` and no drinking template; scenarios 3 and 5 (party push with the weekly remaining, consent block) re-ran 5 / 5.
 
 Results file: `eval/results/features-2026-11-01T*.json`.
+- Guideline layer (US basis, `docs/CLINICAL_BASIS.md`): a limit above the NIAAA low-risk line carries the published note in its receipt; four drinks within two hours on the women's line routes to the strong writer with reason `binge`; the writer never prints the AUDIT-C score and uses no lecture words; digits stay inside the verified set; a stated plan for a saved event is remembered as "Plan for Party at Dan's: …" and the pre-event nudge (dry run) ends with "Your plan: start with sparkling water and pace one for one"; the plan turn carries no unsolicited tips.
 
 ## 3. Acceptance scenarios on the hosted stack (`eval/run.ts`, Alex account, 2 runs, paraphrases)
 
@@ -58,6 +59,7 @@ Nine 35-turn runs on 2026-10-31; the deployed configuration (run v25) scores 4.0
 | Suite | Result |
 |---|---|
 | Unit tests (service date, rollover, std formatting, NO_DATA decoding) | 4 / 4 |
+| Screening at onboarding: the XCUITest answers the three AUDIT-C rows on the "Quick check-in" screen, keeps the seeded limit, and the profile row carries `audit_c_score = 1`, answers `[1,0,0]` (verified in the hosted DB after the run) | pass (chat v52 build, 57 s) |
 | UI test `testSignInLogAndCorrect` on iPhone 17 Pro simulator against the hosted backend: sign in as Alex, type "2 beers" (card "2 × beer" appears, bubble carries the words), "Actually it was 3" (card shows 3 × beer and Before: 2), Undo from the card ("Restored 2 beers"), Today tab shows the week and quick-log buttons | passed (33.8 s) |
 | Chat bubble truncation ("…" after one line) reported from the simulator | fixed: `Text` now grows vertically (`fixedSize(horizontal: false, vertical: true)`); rebuilt and reinstalled |
 | Settings not refreshing after Reset test data | fixed: reloads memory and profile on any toast and on pull-to-refresh |

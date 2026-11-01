@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { allowedNumbers, buildSoulUser, cutFragment, fallbackWarmReply, postProcessSoulReply, reasoningFor, renderVerifiedState, shouldEscalateToSonnet, usedHooks, type VerifiedState } from "./soul.ts";
+import { allowedNumbers, buildSoulUser, cutFragment, fallbackWarmReply, postProcessSoulReply, reasoningFor, renderVerifiedState, shouldEscalateToSonnet, SOUL_PROMPT, usedHooks, type VerifiedState } from "./soul.ts";
 
 const base: VerifiedState = {
   lang: "en", localHour: 20, weekday: "Fri",
@@ -8,6 +8,7 @@ const base: VerifiedState = {
   logged: { count: 2, beverage: "beer", dayLabel: "Fri, Oct 30", std: 2, estimated: true },
   nextEvent: { title: "Party at Sam's", whenLabel: "Wed, Nov 4, 8:00 PM", daysUntil: 5, hoursUntil: 120 },
   summary: null, factLine: null, confirmations: ["Logged 2 beers for Fri, Oct 30, ~2.0 std drinks (est.)."],
+  guideline: null, screening: null,
 };
 
 Deno.test("openers and receipts are stripped, the human line survives", () => {
@@ -165,4 +166,27 @@ Deno.test("a cut-off reply loses its unfinished tail", () => {
   assertEquals(cutFragment("Should I set your limit to zero, or turn on a daily re", "length"), "");
   assertEquals(cutFragment("Fine as is", "stop"), "Fine as is");
   assertEquals(cutFragment("這週還有六杯。今晚是什麼場", "length"), "這週還有六杯。");
+});
+
+Deno.test("gate 5: a binge-level pace or a heavy day after a log routes to the strong writer with the guideline reason", () => {
+  const binge = { ...base, drinksLast2h: 4, entriesLast2h: 1, weeklyRemaining: 3, localHour: 20, guideline: { binge: true, heavyDay: false, weekOverLowRisk: false, limitAboveLowRisk: false, thresholds: { perDay: 3, perWeek: 7, bingeIn2h: 4, auditCPositive: 3 } } };
+  assertEquals(shouldEscalateToSonnet({ intent: "log", state: binge, wrote: true, dailyStrongCount: 0, cap: 10 }), { escalate: true, reason: "binge" });
+  const heavy = { ...binge, guideline: { ...binge.guideline, binge: false, heavyDay: true } };
+  assertEquals(shouldEscalateToSonnet({ intent: "log", state: heavy, wrote: true, dailyStrongCount: 0, cap: 10 }), { escalate: true, reason: "heavy_day" });
+  assertEquals(shouldEscalateToSonnet({ intent: "log", state: { ...binge, guideline: null }, wrote: true, dailyStrongCount: 0, cap: 10 }), { escalate: false, reason: null });
+});
+
+Deno.test("verified state renders the guideline and screening lines and the guard accepts their numbers", () => {
+  const s: VerifiedState = { ...base, drinksLast2h: 5, guideline: { binge: true, heavyDay: true, weekOverLowRisk: false, limitAboveLowRisk: false, thresholds: { perDay: 4, perWeek: 14, bingeIn2h: 5, auditCPositive: 4 } }, screening: { score: 6, band: "positive" } };
+  const text = renderVerifiedState(s);
+  assert(/guideline: binge-level pace, 5 drinks within two hours/.test(text));
+  assert(/screening: AUDIT-C 6\/12 \(positive\)/.test(text));
+  const allowed = allowedNumbers(s);
+  assert(allowed.has(5) && allowed.has(14) && allowed.has(6) && allowed.has(12));
+});
+
+Deno.test("SOUL prompt carries the MI rules: ask before advising, reflect, lapse is not relapse", () => {
+  assert(/ask before advising/i.test(SOUL_PROMPT));
+  assert(/lapse/i.test(SOUL_PROMPT));
+  assert(/never argue/i.test(SOUL_PROMPT) || /roll with/i.test(SOUL_PROMPT));
 });

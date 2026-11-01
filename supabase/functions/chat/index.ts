@@ -7,6 +7,7 @@
 //  6 SOUL (words)        -> one plain-text pass with the verified state and the dreamed profile
 //  7 guard               -> strip openers, drop unverified figures, one question, same language
 
+import { auditCBand, guidelineFlags } from "../_shared/guidelines.ts";
 import { CORS, currentUserId, env, jsonResponse, serviceClient, userClient } from "../_shared/db.ts";
 import type { Db, DailyTotal } from "../_shared/db.ts";
 import { toNumber } from "../_shared/db.ts";
@@ -500,8 +501,13 @@ async function verifiedStateFor(
       hoursUntil: Math.max(0, Math.round((Date.parse(ev.starts_at) - ctx.now.getTime()) / 3600000)),
     }
     : null;
+  const sex = profile.sex_for_guidelines ?? null;
+  const guideline = guidelineFlags({ sex, drinksLast2h, todayTotal: today ? today.std_drinks : null, weeklyTotal: weekly.stdDrinks, weeklyLimit: profile.weekly_limit });
+  const screening = profile.audit_c_score != null ? { score: profile.audit_c_score, band: auditCBand(profile.audit_c_score, sex) } : null;
   return {
     lang: ctx.lang,
+    guideline,
+    screening,
     localHour: lp.hour,
     weekday: lp.weekday,
     weeklyTotal: weekly.stdDrinks,

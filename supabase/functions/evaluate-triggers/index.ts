@@ -7,6 +7,7 @@ import { CORS, currentUserId, env, jsonResponse, serviceClient, toNumber, userCl
 import type { Db, EventRow, Profile } from "../_shared/db.ts";
 import { loadDailyTotal, loadProfile, loadWeekly } from "../_shared/context.ts";
 import { addDays, instantAtLocal, labelServiceDate, localMinuteOfDay, serviceDate } from "../_shared/service_day.ts";
+import { planFor } from "../_shared/events.ts";
 import { blockedCode, evaluateGates, type GateTrace, type TriggerKind } from "../_shared/gates.ts";
 import { apnsConfigFromEnv, sendPush } from "../_shared/apns.ts";
 
@@ -119,6 +120,8 @@ async function collectCandidates(svc: Db, profile: Profile, now: Date, today: st
   const events = (evRows ?? []) as EventRow[];
 
   const weekly = await loadWeekly(svc, userId, today, profile.weekly_limit);
+  const { data: memRow } = events.length ? await svc.from("coach_memory").select("summary").eq("user_id", userId).maybeSingle() : { data: null };
+  const memorySummary = (memRow as { summary?: string } | null)?.summary ?? "";
   for (const ev of events) {
     const starts = new Date(ev.starts_at);
     const evService = serviceDate(starts, tz, profile.rollover_hour);
@@ -144,7 +147,8 @@ async function collectCandidates(svc: Db, profile: Profile, now: Date, today: st
     const prepAt = new Date(starts.getTime() - EVENT_PREP_LEAD_MS);
     if (now >= prepAt && now < starts) {
       const est = weekly.hasNominal ? " (incl. unmeasured)" : "";
-      const why = `${ev.title} at ${whenLabel}; ~${weekly.remaining.toFixed(0)} drinks left in your weekly limit${est}`;
+      const plan = planFor(memorySummary, ev.title);
+      const why = `${ev.title} at ${whenLabel}; ~${weekly.remaining.toFixed(0)} drinks left in your weekly limit${est}${plan ? "; plan on file" : ""}`;
       out.push({
         trigger: "event_prep",
         eventId: ev.id,
@@ -152,7 +156,9 @@ async function collectCandidates(svc: Db, profile: Profile, now: Date, today: st
         scheduledFor: prepAt,
         whyNow: why,
         title: ev.title,
-        body: `${whenLabel} tonight. ${weekly.remaining.toFixed(0)} of ${profile.weekly_limit} left this week${est}. Pick a number before you go?`,
+        body: plan
+          ? `${whenLabel} tonight. ${weekly.remaining.toFixed(0)} of ${profile.weekly_limit} left this week${est}. Your plan: ${plan}`
+          : `${whenLabel} tonight. ${weekly.remaining.toFixed(0)} of ${profile.weekly_limit} left this week${est}. Pick a number before you go?`,
       });
     }
     const morningAt = instantAtLocal(addDays(evService, 1), MORNING_AFTER_HOUR, 0, tz);

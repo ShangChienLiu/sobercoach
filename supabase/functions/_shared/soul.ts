@@ -6,6 +6,7 @@
 // Pure functions live here so they can be unit tested; the one network call is
 // writeSoulReply.
 
+import { guidelineNumbers, renderGuidelineLines, type GuidelineFlags, type Screening } from "./guidelines.ts";
 import { callPlainText, OpenRouterError } from "./openrouter.ts";
 import { type Intent, TOOL_DESCRIPTIONS } from "./prompt.ts";
 import type { SummaryResult } from "./tools_exec.ts";
@@ -37,7 +38,15 @@ Do not mention the clock time unless the user raised it, or it is between 23:00 
 10. Vary your angle: if the clock time, the early wake-ups, a named person or an upcoming event already appears in the last three COACH lines, do not use it again.
 11. In Chinese, no therapy-speak openers either: never "我聽到你說", "這種感覺很真實", "我在這裡陪你", "你已經很棒了".
 
-## 3. STRICT CONSTRAINTS
+## 3. HOW TO COACH (motivational interviewing, SAMHSA TIP 35; relapse prevention, Marlatt)
+- Their reasons, not yours: when they say why they are cutting down or what they want, reflect it back in their words and build on it. Never argue, never persuade; roll with resistance ("you're kind of annoying" gets "Fair. Fewer questions. I'll listen.").
+- Ask before advising: no tips, plans or suggestions unless they asked for them or you asked first whether they want one ("Want one idea for the party, or just a listener tonight?"). When they asked, offer one concrete thing, then ask what they make of it.
+- Affirm effort and self-observation, not drinking less ("you spotted the Friday pattern yourself"), never praise a count.
+- A lapse is not a relapse: one heavy night is one night's data and says nothing about the person; name the scary part, then ask how they are today. Never "you failed", never "start over".
+- Published lines, stated once, never as a lecture: if <verified_ledger_state> has a guideline line (binge-level pace, heavy day, past the low-risk week), you may name it plainly in one clause ("that's past the four-in-two-hours line") and move on; otherwise never cite guidelines or numbers of your own.
+- Not a clinician: no diagnosis, no screening scores in the reply, no withdrawal or detox talk; if they ask whether they should quit or see someone, say that a doctor can answer that and leave it there.
+
+## 4. STRICT CONSTRAINTS
 - Zero clichés: never open with "Got it", "Noted", "Sure", "I hear you", "Great job", "Thanks for sharing", "I'm here for you". No exclamation marks. No emojis. No praise for drinking less, no scolding for drinking more.
 - Zero questions on routine turns (logs, fixes, undo, settings); one question maximum on hard moments and reflection.
 - Receipts are the truth. If <execution_receipt> is not NONE, the system has already done that action: confirm it naturally in your own words (never "I can't"). Only when the receipt is NONE and the user asked for an action, say what the app can do from <supported_actions>, nothing beyond it. Never offer to check, look up, backfill, calculate, or remember anything; facts the user states are kept automatically.
@@ -62,6 +71,10 @@ export interface EventFact {
 /** Everything the writer may cite, computed by SQL and code after the commit. */
 export interface VerifiedState {
   lang: "zh" | "en";
+  /** Published NIAAA lines the figures cross; null until computed. */
+  guideline?: GuidelineFlags | null;
+  /** AUDIT-C from onboarding, when taken. */
+  screening?: Screening | null;
   localHour: number;
   weekday: string;
   weeklyTotal: number;
@@ -95,6 +108,7 @@ export function renderVerifiedState(s: VerifiedState): string {
     const days = s.summary.days.map((d) => `${d.service_date.slice(5)}=${d.dry ? "dry" : d.std_drinks == null ? "no_data" : d.std_drinks.toFixed(1)}`).join(" ");
     lines.push(`summary(${s.summary.range}): total=${s.summary.std_drinks.toFixed(1)} limit=${s.summary.limit} remaining=${s.summary.remaining.toFixed(1)} days: ${days}`);
   }
+  if (s.guideline) lines.push(...renderGuidelineLines(s.guideline, s.screening ?? null));
   if (s.factLine) lines.push(`fact_line_already_shown_to_user: "${s.factLine}"`);
   return lines.join("\n");
 }
@@ -113,6 +127,7 @@ export function allowedNumbers(s: VerifiedState, ...texts: string[]): Set<number
   add(s.todayTotal); add(s.entriesLast2h); add(s.drinksLast2h); add(s.localHour); add(s.localHour % 12 || 12);
   if (s.logged) { add(s.logged.count); add(s.logged.std); }
   if (s.nextEvent) { add(s.nextEvent.daysUntil); add(s.nextEvent.hoursUntil); }
+  if (s.guideline) for (const n of guidelineNumbers(s.guideline, s.screening ?? null)) add(n);
   if (s.summary) { add(s.summary.std_drinks); add(s.summary.limit); add(s.summary.remaining); add(s.summary.days_with_data); for (const d of s.summary.days) add(d.std_drinks); }
   for (const t of [...texts, s.factLine ?? "", ...s.confirmations]) {
     for (const m of t.matchAll(/\d+(?:\.\d+)?/g)) add(Number(m[0]));
@@ -134,6 +149,8 @@ export function shouldEscalateToSonnet(p: EscalationInput): { escalate: boolean;
   if (p.intent === "emotional") return { escalate: true, reason: "emotional" };
   if (p.intent === "reflect") return { escalate: true, reason: "reflect" };
   if (p.intent === "log" && p.wrote) {
+    if (p.state.guideline?.binge) return { escalate: true, reason: "binge" };
+    if (p.state.guideline?.heavyDay) return { escalate: true, reason: "heavy_day" };
     if (p.state.weeklyRemaining < 0) return { escalate: true, reason: "over_goal" };
     if (p.state.entriesLast2h >= 2) return { escalate: true, reason: "rapid_pacing" };
     if (p.state.localHour >= 23 || p.state.localHour < 4) return { escalate: true, reason: "late_night" };

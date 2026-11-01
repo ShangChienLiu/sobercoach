@@ -18,6 +18,24 @@ final class SoberCoachUITests: XCTestCase {
             app.buttons["Continue"].tap()
         }
 
+        // Screening (AUDIT-C) appears once after the age gate; answer the three items and keep the seeded limit.
+        if app.navigationBars["Quick check-in"].waitForExistence(timeout: 5) {
+            // Form rows render lazily; scroll until each one exists.
+            func reveal(_ id: String) -> XCUIElement {
+                let el = app.buttons[id].firstMatch
+                for _ in 0..<6 where !el.exists { app.swipeUp() }
+                return el
+            }
+            for id in ["audit-q1-1", "audit-q2-0", "audit-q3-0"] {
+                let row = reveal(id)
+                XCTAssertTrue(row.waitForExistence(timeout: 5), "AUDIT-C row \(id) not shown")
+                row.tap()
+            }
+            let keep = reveal("screening-keep-limit")
+            XCTAssertTrue(keep.waitForExistence(timeout: 5), "result section did not appear")
+            keep.tap()
+        }
+
         if !app.tabBars.buttons["Coach"].waitForExistence(timeout: 20) {
             let alertText = app.alerts.firstMatch.exists ? app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " | ") : "no alert"
             XCTFail("main tabs did not appear. alert=\(alertText)\n\(app.debugDescription.prefix(3000))")

@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { defaultHourFor, eventKindFor, nudgeAt, resolveEventDateTime } from "./events.ts";
+import { defaultHourFor, eventKindFor, nudgeAt, resolveEventDateTime, planFor } from "./events.ts";
 
 Deno.test("reminders and drinking occasions are told apart from the user's words", () => {
   assertEquals(eventKindFor("remind me friday to call mom", "call mom"), "general_reminder");
@@ -26,4 +26,13 @@ Deno.test("reminders nudge at their time, drinking occasions three hours before"
   const at = new Date("2026-11-06T04:00:00Z");
   assertEquals(nudgeAt(at, "general_reminder").toISOString(), "2026-11-06T04:00:00.000Z");
   assertEquals(nudgeAt(at, "drinking_social").toISOString(), "2026-11-06T01:00:00.000Z");
+});
+
+Deno.test("planFor picks the latest remembered plan that names the event, else null", () => {
+  const memory = "- cutting down because of 4am wake-ups\n- Plan for Sam's party: sparkling water first, then pace one for one\n- Plan for the wedding: leave by eleven";
+  assertEquals(planFor(memory, "Party at Sam's"), "sparkling water first, then pace one for one");
+  assertEquals(planFor(memory, "Dan's wedding"), "leave by eleven");
+  assertEquals(planFor(memory, "Dinner with mom"), null);
+  assertEquals(planFor("", "Party"), null);
+  assertEquals(planFor("- 計畫 聚餐：先喝氣泡水", "週五聚餐"), "先喝氣泡水");
 });
