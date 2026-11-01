@@ -84,6 +84,8 @@ interface ChatData {
   state: ChatState;
   cost_usd: number;
   latency_ms: number;
+  /** Where the time went: the decision pass(es) and the writer, in ms; the rest is SQL and network. */
+  timings: { tool_ms: number; soul_ms: number };
 }
 
 const STRONG_CAP = Number(env("STRONG_CALLS_PER_USER_PER_DAY") ?? "10");
@@ -162,19 +164,26 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
   const profile = await loadProfile(db, userId);
   const todayService = serviceDate(now, profile.timezone, profile.rollover_hour);
   const dayStartIso = instantAtLocal(todayService, profile.rollover_hour, 0, profile.timezone).toISOString();
-  const [strongToday, spendToday] = await Promise.all([strongCallsSince(svc, userId, dayStartIso), userSpendSince(svc, userId, dayStartIso)]);
-  const built = await buildTurnContext(db, userId, now, strongToday, spendToday);
-  const ctx: TurnContext = { ...built, lang: detectLang(message || built.lastMessages.at(-1)?.content || ""), userMessage: message || undefined };
+  // One round trip for the profile, then everything else the turn needs in parallel (the DB is in Tokyo; each wave costs about 100 ms).
+  const [strongToday, spendToday, globalSpend, built] = await Promise.all([
+    strongCallsSince(svc, userId, dayStartIso),
+    userSpendSince(svc, userId, dayStartIso),
+    action ? Promise.resolve(0) : globalSpendLast24h(svc),
+    buildTurnContext(db, userId, now, 0, 0, profile),
+  ]);
+  const ctx: TurnContext = { ...built, strongCallsToday: strongToday, spendTodayUsd: spendToday, lang: detectLang(message || built.lastMessages.at(-1)?.content || ""), userMessage: message || undefined };
 
   // Structured client actions never touch a model.
   if (action) return await handleAction(input, ctx, action);
 
-  await writeLedger(svc, { user_id: userId, role: "user", content: message });
+  // The user row is written while the rest of the turn runs; every exit awaits it before the assistant row.
+  const pendingUserRow = writeLedger(svc, { user_id: userId, role: "user", content: message });
 
   // Tier-0 #1: safety regex.
   const safety = detectSafety(message);
   if (safety) {
     const reply = SAFETY_TEXT[safety.kind];
+    await pendingUserRow;
     await writeLedger(svc, { user_id: userId, role: "assistant", content: reply, tier: "tier0_safety", route_reason: `safety_regex:${safety.kind}`, risk_flag: true, latency_ms: Date.now() - input.started });
     return finish(ctx, reply, "tier0_safety", null, `safety_regex:${safety.kind}`, null, null, safety.kind, 0, input.started);
   }
@@ -182,13 +191,15 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
   // Tier-0 #1b: static facts, answered by code in the user's language.
   const faq = matchFaq(message);
   if (faq) {
+    await pendingUserRow;
     await writeLedger(svc, { user_id: userId, role: "assistant", content: faq.reply, tier: "tier0_fastpath", route_reason: `faq:${faq.key}`, latency_ms: Date.now() - input.started });
     return finish(ctx, faq.reply, "tier0_fastpath", null, `faq:${faq.key}`, null, null, null, 0, input.started);
   }
 
   // Outage or spend breaker: Tier-0 only.
-  const spend = await globalSpendLast24h(svc);
+  const spend = globalSpend;
   if (input.simulateOutage || spend >= GLOBAL_BREAKER_USD) {
+    await pendingUserRow;
     const reason = input.simulateOutage ? "simulated_outage" : "global_spend_breaker";
     // The fast path still writes during an outage; only the words are fixed.
     const fast = matchFastPath(message);
@@ -220,6 +231,7 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
   let tier: LedgerTier = "tier0_fastpath";
   let routeReason: string;
   let cost = 0;
+  let toolMs = 0;
   let modelUsed: string | null = null;
   let tokens = { prompt_tokens: 0, cached_tokens: 0, completion_tokens: 0 };
   let toolCalls: unknown = null;
@@ -243,6 +255,7 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
     let result = await callModel(ctx, toolTier, message);
     let envelope = result.ok ? validateEnvelope(result.value.parsed) : null;
     cost = result.ok ? result.value.costUsd : 0;
+    toolMs = result.ok ? result.value.latencyMs : 0;
     modelUsed = result.ok ? result.value.model : null;
     tokens = result.ok ? result.value.usage : tokens;
 
@@ -257,6 +270,7 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
         const second = await callModel(ctx, "strong", message);
         if (second.ok) {
           cost += second.value.costUsd;
+          toolMs += second.value.latencyMs;
           tokens = sumUsage(tokens, second.value.usage);
           modelUsed = second.value.model;
           const env2 = validateEnvelope(second.value.parsed);
@@ -311,7 +325,8 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
     }
   }
 
-  return await finishTurn(input, ctx, outcomes, message, tier, modelUsed, routeReason, cost, tokens, toolCalls, intent);
+  await pendingUserRow;
+  return await finishTurn(input, ctx, outcomes, message, tier, modelUsed, routeReason, cost, tokens, toolCalls, intent, toolMs);
 }
 
 async function runFastPath(db: Db, ctx: TurnContext, fast: NonNullable<ReturnType<typeof matchFastPath>>): Promise<ToolOutcome> {
@@ -475,8 +490,7 @@ function clarifyFromEntries(ctx: TurnContext, question: string, ids: string[]): 
 }
 
 /** Gate 4b: SQL recomputes everything the writer may cite. */
-async function verifiedStateFor(
-  db: Db,
+function verifiedStateFor(
   ctx: TurnContext,
   profile: TurnContext["profile"],
   weekly: WeeklyTotals,
@@ -484,13 +498,12 @@ async function verifiedStateFor(
   succeeded: ToolOutcome[],
   confirmations: string[],
   factLine: string | null,
-): Promise<VerifiedState> {
+  recent2h: ReadonlyArray<{ count: unknown }>,
+): VerifiedState {
   const tz = profile.timezone;
   const lp = localParts(ctx.now, tz);
-  const since2h = new Date(ctx.now.getTime() - 2 * 3600 * 1000).toISOString();
-  const { data: recent } = await db.from("drink_entries").select("count").eq("user_id", ctx.userId).eq("status", "active").gte("occurred_at", since2h).lte("occurred_at", new Date(ctx.now.getTime() + 60_000).toISOString());
-  const entriesLast2h = recent?.length ?? 0;
-  const drinksLast2h = (recent ?? []).reduce((s, r) => s + toNumber(r.count), 0);
+  const entriesLast2h = recent2h.length;
+  const drinksLast2h = recent2h.reduce((s, r) => s + toNumber(r.count), 0);
   const loggedOutcome = succeeded.find((o) => o.name === "log_drink" && o.card);
   const logged = loggedOutcome?.card
     ? {
@@ -558,16 +571,21 @@ async function finishTurn(
   tokens: { prompt_tokens: number; cached_tokens: number; completion_tokens: number } = { prompt_tokens: 0, cached_tokens: 0, completion_tokens: 0 },
   toolCalls: unknown = null,
   intent: Intent = "chat",
+  toolMs = 0,
 ): Promise<ChatData> {
   const { db, svc, userId } = input;
   const failed = outcomes.filter((o) => !o.ok);
   const succeeded = outcomes.filter((o) => o.ok);
 
-  // Fresh numbers after the commit, including a possibly changed weekly limit.
-  const profile = await loadProfile(db, userId).catch(() => ctx.profile);
+  // Fresh numbers after the commit, in one parallel wave; only a changed weekly limit costs a second one.
+  const [profile, weeklyAtOldLimit, today, recent2h] = await Promise.all([
+    loadProfile(db, userId).catch(() => ctx.profile),
+    loadWeekly(db, userId, ctx.todayService, ctx.profile.weekly_limit),
+    loadDailyTotal(db, userId, ctx.todayService),
+    loadRecent2h(db, ctx),
+  ]);
   const ctx2: TurnContext = { ...ctx, profile };
-  const weekly = await loadWeekly(db, userId, ctx.todayService, profile.weekly_limit);
-  const today = await loadDailyTotal(db, userId, ctx.todayService);
+  const weekly = profile.weekly_limit === ctx.profile.weekly_limit ? weeklyAtOldLimit : await loadWeekly(db, userId, ctx.todayService, profile.weekly_limit);
 
   const confirmations = succeeded.map((o) => o.confirmation).filter((c): c is string => Boolean(c));
   const summaryOutcome = succeeded.find((o) => o.summary);
@@ -579,6 +597,7 @@ async function finishTurn(
   const card = succeeded.find((o) => o.card)?.card ?? null;
   let line = "";
   let modelUsed = model;
+  let soulMs = 0;
   if (failed.length) {
     // Any failure drops the writer; code states exactly what was not written.
     const notes = failed.map((f) => `${f.name.replace("_", " ")}: ${f.error ?? "unknown error"}`).join("; ");
@@ -588,7 +607,7 @@ async function finishTurn(
     routeReason = `${routeReason}+tool_failed`;
   } else if (userMessage) {
     // Gates 5 to 7: the words, for typed messages only.
-    const state = await verifiedStateFor(db, ctx2, profile, weekly, today, succeeded, confirmations, factLine);
+    const state = verifiedStateFor(ctx2, profile, weekly, today, succeeded, confirmations, factLine, recent2h);
     const wrote = succeeded.some((o) => ["log_drink", "correct_entry", "undo_entry", "add_event", "update_event", "set_goal", "set_reminder_pref", "mark_dry"].includes(o.name));
     const strongUsedThisTurn = routeReason.includes(STRONG_CALL_MARK) ? 1 : 0;
     const overBudget = ctx.spendTodayUsd + cost >= USER_BUDGET_USD;
@@ -615,6 +634,7 @@ async function finishTurn(
       }, userId);
       if (soul) {
         cost += soul.costUsd;
+        soulMs = soul.latencyMs;
         tokens = sumUsage(tokens, soul.usage);
         modelUsed = soul.model;
         // A cut-off line with no text at all goes to code; partial text still gets guarded.
@@ -673,7 +693,7 @@ async function finishTurn(
     latency_ms: Date.now() - input.started,
   });
   if (userMessage) scheduleDream(input, profile.turns_since_dream ?? 0);
-  return finish({ ...ctx2, weekly, today }, reply, tier, modelUsed, routeReason, card, null, null, cost, input.started);
+  return finish({ ...ctx2, weekly, today }, reply, tier, modelUsed, routeReason, card, null, null, cost, input.started, { tool_ms: toolMs, soul_ms: soulMs });
 }
 
 /** Every few typed turns, consolidate memory in the background; the response never waits for it. */
@@ -703,6 +723,7 @@ function finish(
   safety: "crisis" | "withdrawal" | "driving" | null,
   cost: number,
   started: number,
+  timings: ChatData["timings"] = { tool_ms: 0, soul_ms: 0 },
 ): ChatData {
   return {
     reply,
@@ -726,5 +747,13 @@ function finish(
     },
     cost_usd: Math.round(cost * 1e6) / 1e6,
     latency_ms: Date.now() - started,
+    timings,
   };
+}
+
+/** Active entries in the last two hours (pacing signal), loaded in the post-commit wave. */
+async function loadRecent2h(db: Db, ctx: TurnContext): Promise<Array<{ count: unknown }>> {
+  const since2h = new Date(ctx.now.getTime() - 2 * 3600 * 1000).toISOString();
+  const { data } = await db.from("drink_entries").select("count").eq("user_id", ctx.userId).eq("status", "active").gte("occurred_at", since2h).lte("occurred_at", new Date(ctx.now.getTime() + 60_000).toISOString());
+  return (data ?? []) as Array<{ count: unknown }>;
 }

@@ -112,8 +112,8 @@ export async function loadEvents(db: Db, userId: string, now: Date): Promise<Eve
   return (data ?? []) as EventRow[];
 }
 
-export async function buildTurnContext(db: Db, userId: string, now: Date, strongCallsToday: number, spendTodayUsd = 0): Promise<TurnContext> {
-  const profile = await loadProfile(db, userId);
+export async function buildTurnContext(db: Db, userId: string, now: Date, strongCallsToday: number, spendTodayUsd = 0, preloaded?: TurnContext["profile"]): Promise<TurnContext> {
+  const profile = preloaded ?? await loadProfile(db, userId);
   const todayService = serviceDate(now, profile.timezone, profile.rollover_hour);
   const [memoryRes, weekly, today, recent48h, events, consentsRes, msgsRes] = await Promise.all([
     db.from("coach_memory").select("summary").eq("user_id", userId).maybeSingle(),

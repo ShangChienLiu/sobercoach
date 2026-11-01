@@ -96,7 +96,7 @@ Every model call is a row in `messages` with model, route reason, tokens in / ca
 
 | Layer | Evidence |
 |---|---|
-| Pure logic | 84 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
+| Pure logic | 85 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
 | Schema | `supabase/tests/schema_test.sql`: rollover, NO_DATA, undo, RLS isolation on all 7 tables, cascade delete, reminder claim |
 | Acceptance on the deployed stack | `eval/run.ts` 41/41 on all 12 scenarios (208/220 on a double run; misses are the strong cap doing its job); `eval/features.ts` 59/59 (incl. the guideline layer and search_history); `eval/core_probes.ts` 9/9 |
 | Mock gateway | 330/330 checks with `OPENROUTER_API_KEY=mock`, so the whole harness runs at $0 |
@@ -141,7 +141,7 @@ supabase start && supabase db reset         # migrations + seeded test accounts
 supabase functions serve --env-file supabase/.env
 
 # Tests that need no network
-make test-functions                          # 84 Deno tests + deno check
+make test-functions                          # 85 Deno tests + deno check
 ./supabase/tests/run_local.sh                # SQL assertions
 
 # iOS

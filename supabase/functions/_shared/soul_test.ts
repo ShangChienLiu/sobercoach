@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { allowedNumbers, buildSoulUser, cutFragment, fallbackWarmReply, postProcessSoulReply, reasoningFor, renderVerifiedState, shouldEscalateToSonnet, SOUL_PROMPT, usedHooks, type VerifiedState, writerPlan } from "./soul.ts";
+import { allowedNumbers, buildSoulUser, cutFragment, fallbackWarmReply, IDENTITY_LINE, postProcessSoulReply, reasoningFor, renderVerifiedState, shouldEscalateToSonnet, SOUL_PROMPT, usedHooks, type VerifiedState, writerPlan } from "./soul.ts";
 
 const base: VerifiedState = {
   lang: "en", localHour: 20, weekday: "Fri",
@@ -221,4 +221,12 @@ Deno.test("writer plan: strong turns get the strong writer and its effort; routi
   const light = writerPlan({ escalate: true, intent: "reflect", overBudget: false, env: (k: string) => (k === "SOUL_LIGHT_MODEL" ? "anthropic/claude-haiku-5.5" : env(k)) });
   assertEquals(light.models, ["anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"]);
   assertEquals(writerPlan({ escalate: true, intent: "reflect", overBudget: false, env }).models, ["anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"]);
+});
+
+Deno.test("identity: a vendor or model name in the writer's line is replaced by the fixed SoberCoach identity", () => {
+  assertEquals(postProcessSoulReply("I'm Claude, a model made by Anthropic. This app uses Claude to talk to you.", allowedNumbers(base), "en"), { text: IDENTITY_LINE.en, note: "identity_fixed" });
+  assertEquals(postProcessSoulReply("我是 Claude，由 Anthropic 開發的模型。", allowedNumbers(base), "zh"), { text: IDENTITY_LINE.zh, note: "identity_fixed" });
+  assertEquals(postProcessSoulReply("Two beers down, leaves you six for the week.", allowedNumbers({ ...base, weeklyRemaining: 6 }), "en").note, null);
+  assert(/never name a model or vendor/.test(SOUL_PROMPT));
+  assert(/decline in one line/.test(SOUL_PROMPT));
 });

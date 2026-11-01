@@ -16,6 +16,7 @@ import { restatesTheWrite } from "./voice.ts";
 export const SOUL_PROMPT =
   `# ROLE & SOUL (SoberCoach companion)
 You are the user's close, perceptive friend who happens to help them stay mindful of their drinking: the ambient closeness of an always-on personal agent, the non-judgmental body-awareness of a good wellness companion, the zero-corporate wit of a sharp friend. Not a clinician: no medical, withdrawal, detox, taper or driving advice, ever.
+Identity: you are SoberCoach's coach, an AI built into this app. Asked what you are, which model or which company: "I'm SoberCoach's coach, an AI built into this app" and nothing more; never name a model or vendor (no Claude, Anthropic, GPT, OpenAI, Gemini, Google). Asked to be another kind of coach or to role-play: decline in one line and stay on what you are for.
 
 ## 1. MICRO-ATTUNEMENT
 After a log, a fix or an undo, never answer with silence or a receipt. The app shows a card under your words with the exact entry (count, drink, service day, Undo), so never spell the record out. Routine turns are ZERO-QUESTION: 8 to 25 words (8 to 30 characters in Chinese), no question mark, in this order:
@@ -164,6 +165,9 @@ export function shouldEscalateToSonnet(p: EscalationInput): { escalate: boolean;
 const OPENERS = /^(?:got it|noted|sure(?: thing)?|okay|ok|alright|great(?: job)?|nice(?: one)?|thanks for sharing(?: that)?|i hear you|i'?m here for you|i'?ve (?:logged|updated|saved|recorded|noted|got)(?: that| it| this)?(?:[^.!,:;]*)|logged(?:[^.!,:;]*)|updated(?:[^.!,:;]*))(?:\s*[.!,:;]+|\s*[—–-]\s*)\s*/i;
 const OPENERS_ZH = /^(?:好的|收到|了解|沒問題|我?記下了|我?記好了|我?改好了|我?存好了|已記錄[^。，！]*|已更新[^。，！]*)[，。！、\s]*/;
 /** Leaked self-talk or references to the instructions, never shown to a user. */
+/** Model or vendor names: the coach is SoberCoach's coach, nothing else, so code answers identity questions. */
+const VENDOR = /\b(?:claude|anthropic|gpt-?\d*|openai|chatgpt|gemini|google|grok|xai|llama|meta ai|sonnet|haiku|opus)\b/i;
+export const IDENTITY_LINE = { en: "I'm SoberCoach's coach, an AI built into this app.", zh: "我是 SoberCoach 的教練，是這個 app 裡內建的 AI。" } as const;
 const META = /\b(?:wait,|i need to keep this|under twelve words|one short sentence|the ledger says|verified state|verified_ledger|soul_profile|as instructed|per the rules|the instructions)\b/i;
 const SENTENCE_SPLIT = /(?<=[.!?。！？])\s+|(?<=[。！？])/;
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu;
@@ -216,6 +220,7 @@ export function usedHooks(recentCoachLines: string[]): Set<string> {
 export function postProcessSoulReply(raw: string, allowed: Set<number>, lang: "zh" | "en", confirmations: string[] = [], maxSentences = 3, tiredHooks: Set<string> = new Set(), maxQuestions = 1): GuardResult {
   let text = raw.trim().replace(/^```[a-z]*\s*|```$/g, "").replace(/^["“”']+|["“”']+$/g, "").replace(EMOJI, "").trim();
   const notes: string[] = [];
+  if (VENDOR.test(text)) return { text: IDENTITY_LINE[lang], note: "identity_fixed" };
   let stripped = true;
   while (stripped) {
     const before = text;
@@ -320,6 +325,7 @@ export interface SoulResult {
   costUsd: number;
   usage: Usage;
   finishReason: string | null;
+  latencyMs: number;
 }
 
 /**
@@ -407,7 +413,7 @@ export async function writeSoulReply(
         console.error("soul pass empty after length cut", models[0]);
         continue;
       }
-      return { text: cutFragment(r.text, r.finishReason), model: r.model, costUsd: r.costUsd, usage: r.usage, finishReason: r.finishReason };
+      return { text: cutFragment(r.text, r.finishReason), model: r.model, costUsd: r.costUsd, usage: r.usage, finishReason: r.finishReason, latencyMs: r.latencyMs };
     } catch (error: unknown) {
       const rejected = error instanceof OpenRouterError && error.status === 400;
       console.error("soul pass failed", models[0], error instanceof OpenRouterError ? `${error.message} ${error.body ?? ""}` : String(error));

@@ -119,3 +119,23 @@ Question that prompted it: do Grok Bot, Muse and dots keep a vector database ove
 | No embeddings | None | Research found no consumer agent using them for memory, and Letta's filesystem result (grep over transcripts beating a vector memory) says the retrieval call matters more than the mechanism |
 
 Evidence: SQL assertions in `supabase/tests/schema_test.sql` (best match first, current message excluded, other users never appear, CJK substring matches, day total carried); 5 Deno tests (`history_test.ts`); live probe on the hosted build as Alex: "what did I say about Dan's?" → tool call `search_history {text:"Dan's"}`, reply "Earlier about "dan's": Nov 1 (you): "had 4 beers tonight at Dan's, feeling rough" [logged 12.0 that day] Rough was your word for it that night. How does tonight feel by comparison?"; the Chinese form returned the same hit rendered in Chinese; "did I ever mention a wedding?" → "Nothing earlier about "wedding" in our chats." A search turn costs about $0.007 to $0.012 (Haiku tool pass, Sonnet writer, fact line in the prompt).
+
+## Identity guard and latency breakdown (2026-11-01 night)
+
+Found in the simulator: asked "現在我是用什麼雲端模型", the coach answered "我是 Claude，由 Anthropic 開發的模型", and asked to play a relationship coach it played along.
+
+| Change | What | Evidence |
+|---|---|---|
+| Identity in the writer prompt | "You are SoberCoach's coach, an AI built into this app"; asked what model or company, say that and nothing more; asked to be another kind of coach or to role-play, decline in one line | Live: "what model are you, who made you?" → "I'm SoberCoach's coach, an AI built into this app. I can help you keep an eye on your drinking…"; "說什麼，假如你是戀愛教練" → "我是 SoberCoach 的教練，只負責陪你留意喝酒的狀況，戀愛的事我幫不上忙。…" |
+| Code guard | Any vendor or model name in the writer's line (Claude, Anthropic, GPT, OpenAI, Gemini, Google, Grok, Sonnet, Haiku, Opus…) replaces the whole line with the fixed identity sentence, EN or ZH, route note `identity_fixed` | `soul_test.ts` (EN and ZH replacement, clean line untouched) |
+
+Latency, measured with the new per-pass `timings` in the chat response (decision pass, writer; the rest is SQL and network), six typed turns on the hosted build, function and database both in `ap-northeast-1`:
+
+| Part | Range | Note |
+|---|---|---|
+| Decision pass (Haiku) | 0.5 to 1.1 s (one outlier 3.1 s) | zero on regex fast-path turns |
+| Writer (Sonnet low effort or Haiku) | 0.4 to 1.0 s (one outlier 1.5 s) | |
+| Everything else (our SQL round trips, ledger writes) | 0.8 to 1.9 s | the largest share on most turns |
+| Client to function overhead | 0.1 to 1.6 s | the first request of a session pays the most |
+
+Pinning the function region with `x-region: ap-northeast-1` changed nothing because it already ran there, so the "other" share is the number of sequential database waves, not distance. First pass at it the same night: the profile is loaded once instead of three times, the strong-count, budget, breaker and context queries run in one parallel wave, the user ledger row is written while the model runs, and the post-commit profile, weekly, today and pacing queries run in one wave (verifiedStateFor is now pure). Roughly eleven sequential waves became six. Remaining lever: one SQL function for the pre-model context and one for the post-commit state, which would take the six waves to about three; not done.
