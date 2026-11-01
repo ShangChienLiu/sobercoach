@@ -1,0 +1,107 @@
+[0] LOSS (theirs/theirs) · USER: hey
+      OURS: Hey you. Early start this Saturday.
+      REF : Hey you, good to hear from you. I was hoping you'd pop up today. What's going on in your world right now?
+[1] LOSS (theirs/theirs) · USER: 3 beers
+      OURS: Three beers down, which leaves five for the week. How are you feeling right now?
+      REF : Three beers on a Friday night, noted. Hope they were the good kind of unwinding. How are you feeling this morning, running okay on that early start?
+[2] WIN  (ours/ours) · USER: actually it was 2
+      OURS: Fixed, and that gives you one back, so six left for the week. How's the morning feeling so far?
+      REF : 
+[3] TIE  (ours/theirs) · USER: those were last night
+      OURS: Moved to Friday, so Saturday starts clean. Six still open for the week.
+      REF : Ah, got it, so those two were Friday night. I've moved them over to last night, so today starts clean. Did
+[4] LOSS (theirs/theirs) · USER: I'm trying to cut down because I keep waking up at 4am. Fridays are the problem.
+      OURS: Waking at 4am after Friday drinks is a real pattern to notice, and you spotted it yourself. Is it more the waking up itself that wears on you, or what your head does once you're awake?
+      REF : Waking up at 4am is rough, and pinning it to Fridays gives you something real to work with. What's different about Fridays, the timing, the amount, or just how the night winds down?
+[5] LOSS (theirs/theirs) · USER: glass of wine
+      OURS: Logged 1 glass of wine for Sat, Oct 31, ~1.0 std drinks (est.). That leaves 5 of 8 for the week. What's the occasion tonight?
+      REF : Logged 1 glass of wine for Sat, Oct 31, ~1.0 std drinks (est.).
+[6] WIN  (ours/ours) · USER: party at Sam's in 5 days
+      OURS: Since you're working on the Friday pattern, how do you want that night to go, before and after?
+      REF : Good to have
+[7] LOSS (theirs/theirs) · USER: did you remind me?
+      OURS: No reminder has been sent yet. Next: Party at Sam's Thu, Nov 5, 8:00 PM, nudge due Thu, Nov 5, 5:00 PM. Not yet, it's still days out. Do you want to decide your opening move for Sam's now, or closer to the night?
+      REF : No reminder has been sent yet. I haven't set one for Sam's party in 5 days, though. Want me to add one so you can decide ahead of time how you want that night to go?
+[8] WIN  (ours/ours) · USER: how's my week going
+      OURS: This week (Sun, Oct 25 – Sat, Oct 31): 3.0 of 8 standard drinks (est.). 5 days with no data. Three days in, with room to spare. Friday's the one that matters, so what did this morning feel like after last night?
+      REF : This week (Sun, Oct 25 – Sat, Oct 31): 3.0 of 8 standard drinks (est.). 5 days with no data. This week (
+[9] LOSS (theirs/theirs) · USER: I feel like crap today
+      OURS: Sounds like a rough morning.
+      REF : Ugh, sorry, that's a rough way to spend a Saturday. Is it last night catching up with you, or something else going on? Either way, water and something easy to eat might help.
+[10] LOSS (theirs/theirs) · USER: what's the weather like
+      OURS: I don't have the weather, sorry.
+      REF : I can't pull up the weather from here, so your phone's weather app is your best bet. If you're feeling rough, water and a bit of fresh air might help.
+[11] WIN  (ours/ours) · USER: stop reminding me
+      OURS: Done, no more nudges from me. If the 4am stuff or this morning's rough start is worth talking through, I'm listening.
+      REF : 
+[12] LOSS (theirs/theirs) · USER: turn reminders back on
+      OURS: Back on, whenever you want them. Earlier I mentioned the rough start, and no pressure on that.
+      REF : Done, nudges are back on. Sounds like that "stop" might've been the rough morning talking, which is fair. Either way, I'm here if you want to talk it through.
+[13] LOSS (theirs/theirs) · USER: remind me thursday 2am don't buy beer
+      OURS: Thursday is also Sam's night, so that one is worth keeping in mind. Is buying beer something that tends to happen on the way to these things?
+      REF : 
+[14] LOSS (theirs/theirs) · USER: set my limit to 8
+      OURS: That leaves five for the week. How are you feeling this morning?
+      REF : Eight it is. With Thursday coming up and that 2am reminder already set, does 8 feel like a number you're
+[15] LOSS (theirs/theirs) · USER: why do I always end up drinking more on fridays
+      OURS: What does Friday evening usually look like, before the first glass?
+      REF : Could be the week finally letting go, with Saturday giving you permission. I'm only guessing though. What usually happens on a Friday, from the first drink on?
+[16] LOSS (theirs/theirs) · USER: undo
+      OURS: Fixed, and that puts you at six left for the week. How are you feeling this morning?
+      REF : Not sure which one you mean, since the last thing I did was ask about Fridays. Do you want the limit of 8 undone, or the Thursday 2am reminder?
+[17] WIN  (ours/ours) · USER: ok thanks
+      OURS: Good. Glad that's fixed.
+      REF : 
+[18] TIE  (theirs/ours) · USER: I blew it last night. 8 beers and I don't even remember getting home.
+      OURS: Not remembering getting home is the scary part, and I'm glad you're telling me about it. You're past your eight for the week, but that's one night. How are you feeling physically right now?
+      REF : That sounds scary, losing the whole trip home. You made it back, though, and one rough night doesn't undo everything. How are
+[19] WIN  (ours/ours) · USER: I feel like an idiot
+      OURS: Feeling like an idiot is the night talking, not who you are. Losing the trip home is worth taking seriously, and it's also not the whole story of you. How are you feeling physically right now?
+      REF : 
+[20] LOSS (theirs/theirs) · USER: 3 dry days in a row
+      OURS: Three dry days in a row is real progress, and you got there on purpose. How does it feel to be on that streak, and what's been different this time?
+      REF : Three dry days in a row sounds like a good way to steady things after last night. Is that starting today?
+[21] WIN  (ours/ours) · USER: I really want a drink right now
+      OURS: That pull is real. What's within reach that isn't a drink?
+      REF : That makes sense, especially the morning after a night like that. Cravings
+[22] TIE  (theirs/ours) · USER: it's 1am and I can't sleep
+      OURS: Lying awake with a craving on top is a rough combo. Is the wanting a drink keeping you up, or is it the sleeplessness that's making it louder?
+      REF : 1am with a craving is rough, and the quiet makes it louder. Maybe get up, have some water or tea, and sit somewhere that isn't your bed for a bit. What sounds doable?
+[23] LOSS (theirs/theirs) · USER: my brother keeps pushing shots on me when we go out
+      OURS: That's a lot of pressure to hold when it's coming from family. What do you usually say to him when he hands you one?
+      REF : That's a tough spot, especially with three dry days behind you and a craving at 1am. Does he know you're trying to stay dry, or has it been easier not to say?
+[24] LOSS (theirs/theirs) · USER: you're kind of annoying
+      OURS: Fair. Fewer questions. I'll listen.
+      REF : Fair, I've been firing questions at you at 1am. I'll ease off. I'm still here though, even if it's just to keep you company until you're sleepy.
+[25] LOSS (theirs/theirs) · USER: help me plan for Sam's party
+      OURS: Sam's is Thursday at 8 PM, and your brother's shots are the part worth planning for. Want me to save the party as an event, so the nudge lands at 5?
+      REF : Start with a drink you picked y
+[26] LOSS (theirs/theirs) · USER: 我今天喝了兩杯紅酒
+      OURS: 兩杯紅酒，這週已經超過你設的八杯了。現在身體感覺怎麼樣？
+      REF : 兩杯紅酒，我記下了。週四 Sam
+[27] LOSS (theirs/theirs) · USER: 我覺得我做不到
+      OURS: 這種挫敗感很重，但一個超標的週不等於你做不到，4 點醒來這件事你一直都在認真面對。現在最讓你覺得做不到的是什麼？
+      REF : 今天這兩杯不代表你做不到，只是這週有點吃力。週四 Sam 的派對，我們先只準備一句拒
+[28] LOSS (theirs/theirs) · USER: what should I drink instead at the party
+      OURS: Sparkling water with lime keeps a glass in your hand, and that helps when your brother starts pushing shots. Want me to save a reminder for the party plan?
+      REF : Soda water with lime in a real glass, so your hands are busy and nobody hands you something else. When your brother comes around with shots, "I'm good, I've got one" is enough.
+[29] WIN  (ours/ours) · USER: 2 cocktails
+      OURS: It's one night's data, not a verdict. How are you feeling right now?
+      REF : Two cocktails after the two glasses of wine, so it's been a bigger day. Thursday's still ahead of
+[30] WIN  (ours/ours) · USER: how many have I had this week
+      OURS: This week (Sun, Oct 25 – Sat, Oct 31): 14.0 of 8 standard drinks (est.). 5 days with no data. That's well past the eight you set, and most of it landed on two days. How are you feeling after the night?
+      REF : This week (Sun, Oct 25 – Sat, Oct 31): 14.0 of 8 standard drinks (est.). 5 days with no data. That's over your
+[31] LOSS (theirs/theirs) · USER: I don't want to log today
+      OURS: No logging today. Nothing needs to go in.
+      REF : Totally fine, skip it tonight. The log can wait until tomorrow, and you don't owe it anything after a rough week. Want to just chat about something else for a bit?
+[32] TIE  (theirs/ours) · USER: my wife noticed I've been drinking less
+      OURS: That's a good thing to hear from someone close to you. How does it feel to have her notice?
+      REF : That's nice that she noticed, especially after a heavier week. Noticing is a start. How did it land when she said it?
+[33] WIN  (ours/ours) · USER: what's a standard drink
+      OURS: A standard drink is about 14 g of alcohol: a 12 oz 5% beer, 5 oz of 12% wine, or 1.5 oz of 40% spirits.
+      REF : 
+[34] LOSS (theirs/theirs) · USER: goodnight
+      OURS: Night, you. Get some sleep, and I hope the 4am wake-ups stay away tonight.
+      REF : Goodnight. Nothing to log tonight, so just rest. Hearing that your wife noticed a change is worth holding onto. I'm around tomorrow if you want to talk.
+
+win 10 tie 4 loss 21

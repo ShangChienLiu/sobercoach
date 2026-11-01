@@ -1,0 +1,17 @@
+appmap.log
+.env
+.env.*
+!.env.example
+*.xcodeproj
+xcuserdata/
+DerivedData/
+.build/
+node_modules/
+.DS_Store
+supabase/.temp/
+supabase/.branches/
+eval/results/*.json
+ios/SoberCoach/Config/Secrets.xcconfig
+
+# verification runs (evidence is local)
+.verify/

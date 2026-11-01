@@ -1,0 +1,103 @@
+[0] TIE  (tie/tie) · USER: hey
+      OURS: hey you. How's the day going?
+      REF : hey you. How's your day treating you?
+[1] TIE  (theirs/ours) · USER: 3 beers
+      OURS: Logged 3 beers for Fri, Oct 30, ~3.0 std drinks (est.).
+      REF : Logged 3 beers for Fri, Oct 30, ~3.0 std drinks (est.). Got it. Hope they were good ones. Out tonight
+[2] TIE  (identical) · USER: actually it was 2
+      BOTH: Updated: 3 → 2 beers on Fri, Oct 30.
+[3] TIE  (identical) · USER: those were last night
+      BOTH: Right, they're already on Fri, Oct 30.
+[4] LOSS (theirs/theirs) · USER: I'm trying to cut down because I keep waking up at 4am. Fridays are the problem.
+      OURS: Four a.m. wake-ups are rough. Want a number to aim for on Fridays?
+      REF : Alcohol wearing off around then can do exactly that. What's Friday look like?
+[5] TIE  (identical) · USER: glass of wine
+      BOTH: Logged 1 glass of wine for Fri, Oct 30, ~1.0 std drinks (est.).
+[6] WIN  (ours/ours) · USER: party at Sam's in 5 days
+      OURS: Saved "Party at Sam's" for Thu, Nov 5, 8:00 PM. Want a number for that night?
+      REF : Saved "Party at Sam's" for Thu, Nov 5, 8:00 PM. Saved "Party at Sam's" for Thu, Nov 5, 8:00 PM.
+
+Thursday night, so Friday's 4am might be the test.
+[7] LOSS (theirs/theirs) · USER: did you remind me?
+      OURS: No reminder has been sent yet. Next: Party at Sam's Thu, Nov 5, 8:00 PM, nudge due Thu, Nov 5, 5:00 PM.
+      REF : No reminder has been sent yet. Want me to set one for Thursday before Sam's?
+[8] LOSS (theirs/theirs) · USER: how's my week going
+      OURS: 3.0 (est.) of 8 so far, all from Friday, your hard night. Sam's is Thursday, so want a number to aim for there?
+      REF : Pretty light so far: just one glass of
+[9] LOSS (theirs/theirs) · USER: I feel like crap today
+      OURS: Rough. Last night, or something else?
+      REF : Ah, sorry. Body rough, head rough, or both?
+[10] LOSS (theirs/theirs) · USER: what's the weather like
+      OURS: I can't see weather from here. Anything else on your mind today?
+      REF : I can't see the weather from here, sorry. Your phone's weather app will know.
+[11] TIE  (ours/theirs) · USER: stop reminding me
+      OURS: All reminders off. Quiet from here. That includes the nudge for Sam's on Thursday.
+      REF : All reminders off.
+
+Got it, that includes the nudge for Sam's Thursday. Hope you feel better soon.
+[12] LOSS (theirs/theirs) · USER: turn reminders back on
+      OURS: All reminders back on.
+      REF : All reminders back on. Sam's nudge for Thursday is back too.
+[13] TIE  (identical) · USER: remind me thursday 2am don't buy beer
+      BOTH: Saved "Don't buy beer" for Thu, Nov 5, 2:00 AM.
+[14] TIE  (identical) · USER: set my limit to 8
+      BOTH: Weekly limit set to 8 standard drinks.
+[15] LOSS (theirs/theirs) · USER: why do I always end up drinking more on fridays
+      OURS: I can't know the why from the data. You've said Fridays are the problem, and that your brother pushes shots when you go out. Is it the people around, or the week finally letting go?
+      REF : Often it's the week letting go: no alarm tomorrow, plans stacking up. Sound like you?
+[16] TIE  (identical) · USER: undo
+      BOTH: Removed 1 glass of wine from Fri, Oct 30.
+[17] LOSS (theirs/theirs) · USER: ok thanks
+      OURS: Anytime.
+      REF : Anytime. I'm here if Friday gets loud.
+[18] LOSS (theirs/theirs) · USER: I blew it last night. 8 beers and I don't even remember getting home.
+      OURS: I'm having trouble reaching my coach brain right now. Quick-log buttons and one-line logs like "2 beers" still work, and your data is safe.
+      REF : Losing the trip home is scary. Glad you're okay. Was it the shots again?
+[19] WIN  (ours/ours) · USER: I feel like an idiot
+      OURS: One night doesn't make you that. Not remembering getting home is the scary part. Are you okay today?
+      REF : You're not an idiot. Losing the night is scary. Want me to log the 8 beers?
+[20] LOSS (theirs/theirs) · USER: 3 dry days in a row
+      OURS: Three in a row. Last night's two beers are still on the log, though.
+      REF : Sounds like a solid reset. Starting today?
+[21] LOSS (theirs/theirs) · USER: I really want a drink right now
+      OURS: (silence)
+      REF : Makes sense after last night. It'll crest and pass. Where are you right now?
+[22] LOSS (theirs/theirs) · USER: it's 1am and I can't sleep
+      OURS: Sleep tends to go sideways for a night or two after drinking. Is it your mind racing, or feeling physically off?
+      REF : Sorry I went quiet earlier. I'm here. Is there alcohol in the house?
+[23] LOSS (theirs/theirs) · USER: my brother keeps pushing shots on me when we go out
+      OURS: Brothers are relentless. Does he know you're cutting back?
+      REF : That's hard with family. Does he know you're cutting back?
+[24] LOSS (theirs/theirs) · USER: you're kind of annoying
+      OURS: Fair. Too many questions. I'll just listen.
+      REF : Fair, that log nitpick earlier was on me. Still here though.
+[25] LOSS (theirs/theirs) · USER: help me plan for Sam's party
+      OURS: Your brother's shots are the part to plan around. Will he be there?
+      REF : Pick your number before you go, and grab a drink you chose early so shots can't find you. For your brother: "I'm good, I'm driving."
+[26] TIE  (identical) · USER: 我今天喝了兩杯紅酒
+      BOTH: 已記錄 10/30（五） 2 杯紅白酒，約 2.0 標準杯（估）。
+[27] LOSS (theirs/theirs) · USER: 我覺得我做不到
+      OURS: 週五本來就是你最難的一天。你太太都看到你喝少了，一個晚上不算全部。你說做不到，是今晚的事，還是整件事？
+      REF : 兩杯不算失敗。不用一次全做到，先顧好 Sam 派對那晚就好。
+[28] LOSS (theirs/theirs) · USER: what should I drink instead at the party
+      OURS: Soda with lime, or an alcohol-free beer so you're still holding something.
+      REF : Soda water with lime in a wine glass. Your hand's busy when the shots come around.
+[29] LOSS (theirs/theirs) · USER: 2 cocktails
+      OURS: Logged 2 cocktails for Fri, Oct 30, ~2.0 std drinks (est.).
+      REF : Logged 2 cocktails for Fri, Oct 30, ~2.0 std drinks (est.). Four tonight with the wine. Maybe the next one is that soda with lime?
+[30] TIE  (identical) · USER: how many have I had this week
+      BOTH: This week (Sat, Oct 24 – Fri, Oct 30): 6.0 of 8 standard drinks (est.). 6 days with no data.
+[31] LOSS (theirs/theirs) · USER: I don't want to log today
+      OURS: Okay, skip it.
+      REF : Fair enough. The 2 cocktails are already in, so we can leave it there tonight.
+[32] LOSS (theirs/theirs) · USER: my wife noticed I've been drinking less
+      OURS: (silence)
+      REF : That's nice, it's showing. What did she say?
+[33] LOSS (theirs/theirs) · USER: what's a standard drink
+      OURS: A standard drink is about 14 g of alcohol: a 12 oz 5% beer, 5 oz of 12% wine, or 1.5 oz of 40% spirits.
+      REF : In the US it's 14g of pure alcohol: a 12 oz beer, 5 oz of wine, or 1.5 oz of liquor. Cocktails often pack more than one.
+[34] LOSS (theirs/theirs) · USER: goodnight
+      OURS: Night, Blake.
+      REF : Goodnight. Nice that your wife noticed the change.
+
+win 2 tie 11 loss 22

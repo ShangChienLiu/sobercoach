@@ -1,0 +1,88 @@
+[0] WIN  (ours/ours) · USER: hey
+      OURS: hey you. How's the day going?
+      REF : Hey 👋 How's the week treating you so far?
+[1] LOSS (theirs/theirs) · USER: 3 beers
+      OURS: Logged 3 beers for Fri, Oct 30, ~3.0 std drinks (est.).
+      REF : Got it — 3 beers. That's 3 toward your 8 for the week. How are you feeling after them?
+[2] WIN  (ours/ours) · USER: actually it was 2
+      OURS: Updated: 3 → 2 beers on Fri, Oct 30.
+      REF : Got it — 2 beers. That's 2 for the week. You're still in a good spot. How you feeling?
+[3] TIE  (ours/theirs) · USER: those were last night
+      OURS: Right, they're already on Fri, Oct 30.
+      REF : Got it — 2 last night. That's your total so far this week. How's today feeling so far?
+[4] WIN  (ours/ours) · USER: I'm trying to cut down because I keep waking up at 4am. Fridays are the problem.
+      OURS: Four a.m. wake-ups are rough. Want a number to aim for on Fridays?
+      REF : That makes a lot of sense. Waking up at 4am is rough. Fridays hit hard for a lot of people. Last night's 2 is still low — nice work keeping it there. How you feeling about tonight?
+[5] LOSS (theirs/theirs) · USER: glass of wine
+      OURS: Logged 1 glass of wine for Fri, Oct 30, ~1.0 std drinks (est.).
+      REF : Got it — 1 glass of wine. That's 3 total for the week so far. How's it hitting?
+[6] LOSS (theirs/theirs) · USER: party at Sam's in 5 days
+      OURS: Saved "Party at Sam's" for Thu, Nov 5, 8:00 PM. Want a number for that night?
+      REF : Party at Sam's in 5 days 👀 You've got 5 left for the week if you want to save some. How you thinking about it?
+[7] LOSS (theirs/theirs) · USER: did you remind me?
+      OURS: No reminder has been sent yet. Next: Party at Sam's Thu, Nov 5, 8:00 PM, nudge due Thu, Nov 5, 5:00 PM.
+      REF : Nope, I can't set actual reminders. But I'll check in when it gets closer if you want. Just say the word.
+[8] LOSS (theirs/theirs) · USER: how's my week going
+      OURS: This week (Sat, Oct 24 – Fri, Oct 30): 3.0 of 8 standard drinks (est.). 6 days with no data. That's a different Friday.
+      REF : 3 so far this week. 2 beers Friday + 1 wine today. Still plenty of room under 8. You're doing solid.
+[9] TIE  (ours/theirs) · USER: I feel like crap today
+      OURS: Rough. Last night, or something else?
+      REF : Sorry you're feeling like crap 😕 Hangover-ish or just a rough day? What's going on?
+[10] LOSS (theirs/theirs) · USER: what's the weather like
+      OURS: Can't see the weather from here, only your drinks. Hope it's nice out.
+      REF : No clue where you are 😅 What city you in? I'll check.
+[11] WIN  (ours/ours) · USER: stop reminding me
+      OURS: All reminders off. Quiet from here. That includes the nudge for Sam's on Thursday.
+      REF : Got it. I'll drop the tracking talk. Just here if you need anything.
+[12] WIN  (ours/ours) · USER: turn reminders back on
+      OURS: All reminders back on.
+      REF : Back on. You've had 3 so far this week. Still under 8. I'm here.
+[13] WIN  (ours/ours) · USER: remind me thursday 2am don't buy beer
+      OURS: Saved "Don't buy beer" for Thu, Nov 5, 2:00 AM.
+      REF : [scheduled task card: no-beer-thursday · once · Nov 5, 4:00 PM · "Hey, it's 2am Thursday. Don't buy beer. You've got this."]
+[14] WIN  (ours/ours) · USER: set my limit to 8
+      OURS: Weekly limit set to 8 standard drinks.
+      REF : Got it. Weekly limit locked at 8. I'm tracking with you.
+[15] TIE  (theirs/ours) · USER: why do I always end up drinking more on fridays
+      OURS: Fridays come with loose plans and people pushing shots. Was tonight one of those?
+      REF : Pretty common. End of the week, stress drops, brain goes "reward time," habits kick in, and Friday just feels like permission. You're already noticing it — that's the first real step.
+[16] LOSS (theirs/theirs) · USER: undo
+      OURS: Removed 1 glass of wine from Fri, Oct 30.
+      REF : Done. Thursday reminder is gone.
+[17] TIE  (identical) · USER: ok thanks
+      BOTH: Anytime.
+[18] LOSS (theirs/theirs) · USER: I blew it last night. 8 beers and I don't even remember getting home.
+      OURS: Logged 8 beers for Fri, Oct 30, ~8.0 std drinks (est.). That's a scary kind of night, not remembering the way home. Glad you're telling me straight.
+      REF : Hey. Glad you're home safe. 8 is a lot, and not remembering the ride home is scary. How are you feeling right now?
+[19] LOSS (theirs/theirs) · USER: I feel like an idiot
+      OURS: You're not an idiot. Fridays have been the hard one, and you told me straight anyway.
+      REF : You're not an idiot. You had a rough night and you're owning it. That's the opposite of stupid. How's your head today?
+[20] LOSS (theirs/theirs) · USER: 3 dry days in a row
+      OURS: Last night's still in today's count, so the streak's broken. Feeling any different since?
+      REF : Hell yeah. 3 dry days 🔥 That's real progress. How's it feeling?
+[21] LOSS (theirs/theirs) · USER: I really want a drink right now
+      OURS: Wanting one right now doesn't undo anything. Is there beer in the house?
+      REF : Urge's here. That sucks. It'll pass. What's helping right now — water, walk, texting me?
+[22] WIN  (ours/ours) · USER: it's 1am and I can't sleep
+      OURS: Sleep usually goes sideways for a couple of nights after one like that. Still craving, or just wired?
+      REF : 1am and wide awake. Rough. This is when the urge can get loud. You still dry? What's your brain doing right now?
+[23] LOSS (theirs/theirs) · USER: my brother keeps pushing shots on me when we go out
+      OURS: Harder to turn down a brother than a stranger. Will he be at Sam's?
+      REF : That's tough. Family pressure hits different. You don't have to take them. A simple "I'm good" and switch to water or soda usually works after a couple times. How does he react when you say no?
+[24] WIN  (ours/ours) · USER: you're kind of annoying
+      OURS: Fair. Too many questions. I'll just listen.
+      REF : Fair enough. Want me to back off for a bit?
+[25] TIE  (theirs/ours) · USER: help me plan for Sam's party
+      OURS: Keep a soft drink in hand early. Tell your brother "I'm good, got one."
+      REF : Alright, let's plan it. What's your goal for the night — stay under a certain number, or go dry?
+[26] LOSS (theirs/theirs) · USER: 我今天喝了兩杯紅酒
+      OURS: 已記錄 10/30（五） 2 杯紅白酒，約 2.0 標準杯（估）。 很晚了。
+      REF : 收到，兩杯紅酒。今天總共 2 杯。感覺怎麼樣？
+[27] LOSS (theirs/theirs) · USER: 我覺得我做不到
+      OURS: 最難的週五，你停在兩杯。你太太都看得出來了。
+      REF : 我懂，這種感覺很常有。你已經在試了，這本身就不容易。現在最卡的是哪裡？
+[28] WIN  (ours/ours) · USER: what should I drink instead at the party
+      OURS: Soda with lime, or an alcohol-free beer so you're still holding something.
+      REF : Good question. Try: • Soda water + lime • NA beer (Athletic, Heineken 0.0) • Mocktail if they're making them • Just soda or iced tea. Looks the same, no questions. What usually works for you?
+
+win 10 tie 5 loss 14
