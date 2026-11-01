@@ -26,6 +26,8 @@ export interface CallOptions {
   schema: JsonSchemaFormat;
   maxTokens: number;
   temperature?: number;
+  /** Hidden-reasoning effort for the decision pass; a JSON envelope needs none. Unset leaves the endpoint default. */
+  reasoning?: "off" | "low" | "medium" | "default";
   sessionId: string; // user_id, keeps a user on one upstream
   providerOrder?: string[]; // pinned ZDR endpoints for the primary model
   timeoutMs?: number;
@@ -66,6 +68,7 @@ export async function callStructured<T>(env: OpenRouterEnv, opts: CallOptions): 
     messages: opts.messages,
     max_tokens: opts.maxTokens,
     ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
+    ...reasoningBody(opts.reasoning),
     response_format: { type: "json_schema", json_schema: opts.schema },
     usage: { include: true },
     user: opts.sessionId,
@@ -154,8 +157,8 @@ export function parseJsonLoose<T>(content: string): T {
 
 export interface PlainTextOptions {
   models: string[];
-  /** "off" for models that allow it (Haiku); "low" asks for minimal effort (Sonnet 5.5 ZDR accepts it, 0 reasoning tokens); "default" leaves the endpoint's own setting. */
-  reasoning?: "off" | "default" | "low";
+  /** "off" for models that allow it (Haiku); "low" asks for minimal effort (Sonnet 5.5 ZDR accepts it, 0 reasoning tokens); "medium" lets the strong writer think on hard turns; "default" leaves the endpoint's own setting. */
+  reasoning?: "off" | "default" | "low" | "medium";
   system: string;
   user: string;
   maxTokens: number;
@@ -186,7 +189,7 @@ export async function callPlainText(env: OpenRouterEnv, opts: PlainTextOptions):
     ],
     max_tokens: opts.maxTokens,
     // Hidden reasoning must not eat a short line. Haiku allows it off; Sonnet 5.5 ZDR endpoints only allow a minimum.
-    ...(opts.reasoning === "default" ? {} : opts.reasoning === "low" ? { reasoning: { effort: "low" } } : { reasoning: { enabled: false } }),
+    ...reasoningBody(opts.reasoning ?? "off"),
     usage: { include: true },
     user: opts.sessionId,
     session_id: opts.sessionId,
@@ -220,4 +223,11 @@ export async function callPlainText(env: OpenRouterEnv, opts: PlainTextOptions):
   };
   const model = json.model ?? primary;
   return { text: typeof content === "string" ? content : "", finishReason: json.choices?.[0]?.finish_reason ?? null, model, provider: json.provider ?? null, usage, costUsd: typeof json.usage?.cost === "number" ? json.usage.cost : estimateCostUsd(model, usage), latencyMs };
+}
+
+/** Request-body fragment for hidden reasoning. Unset or "default" sends nothing; "off" disables; "low"/"medium" set the effort. */
+export function reasoningBody(level: "off" | "low" | "medium" | "default" | undefined): Record<string, unknown> {
+  if (level == null || level === "default") return {};
+  if (level === "off") return { reasoning: { enabled: false } };
+  return { reasoning: { effort: level } };
 }

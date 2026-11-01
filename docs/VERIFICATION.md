@@ -1,4 +1,4 @@
-# Verification record (2026-11-01, deployed chat version 52, evaluate-triggers version 14)
+# Verification record (2026-11-01, deployed chat version 59, evaluate-triggers version 20)
 
 What was actually run against the build that is live, what passed, what did not, and what cannot be verified from this machine. Every number below comes from a command listed in `docs/manual` section C or from the files named.
 
@@ -6,13 +6,13 @@ What was actually run against the build that is live, what passed, what did not,
 
 | Suite | Result |
 |---|---|
-| `deno test` in `supabase/functions/_shared` (service day, safety regex, fast path, pre-flight routing, envelope, SOUL guard and routing, dreaming inputs, reasoning flags, fragment cut, NIAAA thresholds, AUDIT-C bands, guideline escalation, MI prompt rules, event plan lookup) | 73 / 73 |
+| `deno test` in `supabase/functions/_shared` (service day, safety regex, fast path, pre-flight routing, envelope, SOUL guard and routing, dreaming inputs, reasoning flags, fragment cut, NIAAA thresholds, AUDIT-C bands, guideline escalation, MI prompt rules, event plan lookup) | 79 / 79 (6 added on 2026-11-01 for the routing revision: model defaults and fallback chains, user-spend RPC wrapper incl. fail-closed, budget routing, writer plan) |
 | `deno check` on both edge functions | clean (gates every deploy since the one regression on 2026-10-31 22:20) |
 | `supabase/tests/schema_test.sql` (rollover, exact vs nominal, NO_DATA, undo, RLS isolation, cascade delete, spend window, reminder claim) | all assertions passed on the Postgres fallback runner; the local Supabase container is broken (see manual section G) |
 
 ## 2. Every AI behaviour, end to end on the hosted stack (`eval/features.ts`, Blake account)
 
-56 / 56 pass on chat v52 ($0.058 of model calls; 48 / 48 on v51 before the guideline layer, 43 / 43 before the 01:50 hardening). Each row is one real request to the deployed function with the real models:
+56 / 56 pass on chat v59 after the routing revision ($0.089 of model calls, up from $0.058 on v52 because the strong decision retries now run on Sonnet; one earlier run on v59 was 55 / 56 only because the dream pass wrote the profile in Chinese and the check looked for English words, fixed in the check). 56 / 56 on v52; 48 / 48 on v51 before the guideline layer, 43 / 43 before the 01:50 hardening. Each row is one real request to the deployed function with the real models:
 
 - Typed greeting gets a complete line (no fragment, no 500).
 - Regex fast path writes; the writer speaks; receipt lives in the card; zero questions; no unverified digits.

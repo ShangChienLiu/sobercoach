@@ -17,8 +17,9 @@ export interface ModelRoute {
 }
 
 const DEFAULT_SMALL = "anthropic/claude-haiku-5.5";
-const DEFAULT_STRONG = "google/gemini-3.5-flash-lite";
-const DEFAULT_STRONG_FALLBACK = "anthropic/claude-sonnet-5.5";
+const DEFAULT_STRONG = "anthropic/claude-sonnet-5.5";
+// If the strong decision model is down, a cheaper decision beats no decision.
+const DEFAULT_STRONG_FALLBACK = "anthropic/claude-haiku-5.5";
 
 // List prices read from OpenRouter /api/v1/models on 2026-10-31 (USD per 1M tokens).
 // Cached-input prices are not exposed there; 10% of input is assumed until measured.
@@ -62,3 +63,18 @@ export function estimateCostUsd(modelId: string, usage: Usage): number {
 
 /** OpenRouter adds a 5.5% fee on credit purchases; applied for budgeting. */
 export const OPENROUTER_FEE = 0.055;
+
+/**
+ * Network fallback chain for a decision pass: the small tier falls up to the strong
+ * model, the strong tier falls to its fallback. A model never appears twice.
+ */
+export function modelChainFor(tier: "small" | "strong", env: (k: string) => string | undefined): string[] {
+  const ids = tier === "small"
+    ? [modelForTier("small", env).id, modelForTier("strong", env).id]
+    : [modelForTier("strong", env).id, modelForTier("strong_fallback", env).id];
+  return dedupe(ids);
+}
+
+export function dedupe(ids: string[]): string[] {
+  return ids.filter((id, i) => ids.indexOf(id) === i);
+}

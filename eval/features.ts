@@ -163,7 +163,7 @@ check("Fast path still writes during an outage", r18b.ok && r18b.card != null &&
 await sleep(4000);
 const prof = await rest<Array<{ soul_profile: string; turns_since_dream: number }>>("profiles?select=soul_profile,turns_since_dream");
 check("Dreaming pass wrote a soul profile in the background", (prof[0]?.soul_profile ?? "").length > 100, (prof[0]?.soul_profile ?? "(empty)").slice(0, 140).replace(/\n/g, " | "));
-check("Dreamed profile reflects the user's own facts", /friday|4 ?am|stop/i.test(prof[0]?.soul_profile ?? ""), "");
+check("Dreamed profile reflects the user's own facts", /friday|週五|4 ?am|凌晨|stop|提醒/i.test(prof[0]?.soul_profile ?? ""), (prof[0]?.soul_profile ?? "").slice(0, 100).replace(/\n/g, " | "));
 
 // 20 reset clears memory + profile and dream does not resurrect
 await chat({ action: { type: "reset_test_data" } });

@@ -37,7 +37,7 @@ Every message goes through a **deterministic harness** written in plain TypeScri
 | `actually it was 3` | Correction by entry id, card shows *Before: 2* and *Restored 2 beers* on undo | ~$0.003 |
 | `those were last night` | Entry moves days; a day with no rows is **NO DATA**, never zero | ~$0.003 |
 | `change that one` with two candidates | Code asks *which one?* with tappable choices. Nothing is written | $0 |
-| a blackout night, typed at 1 a.m. | `late_night` / `over_goal` / `rapid_pacing` rules route to the strong writer (capped at 10 a day) | ~$0.005 |
+| a blackout night, typed at 1 a.m. | `late_night` / `over_goal` / `rapid_pacing` rules route to the strong writer (capped at 10 a day, and never past the $0.15 daily user budget) | ~$0.005 |
 | `I'm trying to cut down for my daughter` | Stated reasons and intentions are stored verbatim in `coach_memory`; the writer never offers to remember | ~$0.003 |
 | `party at Dan's on Saturday` / `remind me Friday to call mom` | Standing intents with deterministic defaults; pushes go through nine logged gates | ~$0.003 |
 | `stop reminding me` | One consent flip per category, done in code | $0 |
@@ -72,7 +72,7 @@ flowchart LR
 | 2 Pre-flight | `_shared/tier0.ts`, `chat/index.ts` | Global daily spend breaker, simulated outage, ambiguous-correction clarify |
 | 3 AGENTS | `_shared/prompt.ts`, `_shared/tier0.ts` | Regex fast path for `2 beers` / `undo`; otherwise Haiku returns tool calls and an intent, **no reply text** |
 | 4 Execute | `_shared/tools_exec.ts`, `chat/index.ts` | 16 tools from one registry; `verifiedStateFor()` recomputes totals, remaining, pacing, next event |
-| 5 Escalate | `_shared/soul.ts` | `shouldEscalateToSonnet()`: written rules, counted against a 10-a-day cap in the ledger |
+| 5 Escalate | `_shared/soul.ts` | `shouldEscalateToSonnet()` and `writerPlan()`: written rules, counted against a 10-a-day cap and a $0.15-a-day user budget in the ledger |
 | 6 SOUL | `_shared/soul.ts` | Plain-text writer fed the soul profile, verbatim memory, verified ledger state and the execution receipt |
 | 7 Guard | `_shared/soul.ts`, `_shared/voice.ts` | `postProcessSoulReply()`: drops sentences with digits not in the verified set, restated receipts, meta self-talk; one question max, zero on routine writes; language check; falls back to a code line |
 
@@ -87,6 +87,7 @@ The proactive side (`supabase/functions/evaluate-triggers`, pg_cron every 15 min
 | 35-turn coaching conversation | $0.063 |
 | Heavy month (3,000 messages, strong cap hit daily) | ≈ $3.10 modelled, $4.50 ceiling |
 | Global breaker | `GLOBAL_DAILY_SPEND_USD`, tripped and restored live |
+| Per-user daily budget | `USER_MODEL_BUDGET_USD_PER_DAY` = $0.15 (30 days = the $4.50 ceiling); over it, words come from Haiku and nothing escalates; tripped and restored live |
 
 Every model call is a row in `messages` with model, route reason, tokens in / cached / out, cost and latency. `docs/COST_MODEL.md` derives the ceiling from live list prices.
 
@@ -94,7 +95,7 @@ Every model call is a row in `messages` with model, route reason, tokens in / ca
 
 | Layer | Evidence |
 |---|---|
-| Pure logic | 73 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
+| Pure logic | 79 Deno tests in `supabase/functions/_shared`; `deno check` gates every deploy |
 | Schema | `supabase/tests/schema_test.sql`: rollover, NO_DATA, undo, RLS isolation on all 7 tables, cascade delete, reminder claim |
 | Acceptance on the deployed stack | `eval/run.ts` 41/41 on all 12 scenarios (208/220 on a double run; misses are the strong cap doing its job); `eval/features.ts` 56/56 (incl. the guideline layer); `eval/core_probes.ts` 9/9 |
 | Mock gateway | 330/330 checks with `OPENROUTER_API_KEY=mock`, so the whole harness runs at $0 |
@@ -139,7 +140,7 @@ supabase start && supabase db reset         # migrations + seeded test accounts
 supabase functions serve --env-file supabase/.env
 
 # Tests that need no network
-make test-functions                          # 63 Deno tests + deno check
+make test-functions                          # 79 Deno tests + deno check
 ./supabase/tests/run_local.sh                # SQL assertions
 
 # iOS

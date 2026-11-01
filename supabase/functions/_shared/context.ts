@@ -28,6 +28,8 @@ export interface TurnContext {
   consents: ConsentRow[];
   lastMessages: MessageRow[];
   strongCallsToday: number;
+  /** This user's model spend since the start of their service day, in USD. */
+  spendTodayUsd: number;
   lang: "zh" | "en";
   /** The typed message of this turn, for tools that classify from the user's words. */
   userMessage?: string;
@@ -110,7 +112,7 @@ export async function loadEvents(db: Db, userId: string, now: Date): Promise<Eve
   return (data ?? []) as EventRow[];
 }
 
-export async function buildTurnContext(db: Db, userId: string, now: Date, strongCallsToday: number): Promise<TurnContext> {
+export async function buildTurnContext(db: Db, userId: string, now: Date, strongCallsToday: number, spendTodayUsd = 0): Promise<TurnContext> {
   const profile = await loadProfile(db, userId);
   const todayService = serviceDate(now, profile.timezone, profile.rollover_hour);
   const [memoryRes, weekly, today, recent48h, events, consentsRes, msgsRes] = await Promise.all([
@@ -136,6 +138,7 @@ export async function buildTurnContext(db: Db, userId: string, now: Date, strong
     consents: (consentsRes.data ?? []) as ConsentRow[],
     lastMessages: ((msgsRes.data ?? []) as MessageRow[]).reverse(),
     strongCallsToday,
+    spendTodayUsd,
     lang: "en",
   };
 }

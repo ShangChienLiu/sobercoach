@@ -71,3 +71,17 @@ export async function globalSpendLast24h(db: Db): Promise<number> {
 export async function touchLastOpened(db: Db, userId: string): Promise<void> {
   await db.from("profiles").update({ last_opened_at: new Date().toISOString() }).eq("user_id", userId);
 }
+
+/**
+ * This user's model spend since the given instant (all assistant rows, tool pass
+ * plus writer plus dreaming), summed in SQL. Fails closed: an error reads as
+ * "over budget", which drops the writer to the budget model rather than to silence.
+ */
+export async function userSpendSince(db: Db, userId: string, sinceIso: string): Promise<number> {
+  const { data, error } = await db.rpc("ledger_user_spend_since", { p_user_id: userId, p_since: sinceIso });
+  if (error) {
+    console.error("ledger_user_spend_since failed", error.message);
+    return Number.POSITIVE_INFINITY;
+  }
+  return toNumber(Array.isArray(data) ? data[0] : data, 0);
+}

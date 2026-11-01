@@ -141,10 +141,13 @@ export interface EscalationInput {
   wrote: boolean;
   dailyStrongCount: number;
   cap: number;
+  /** The user's model spend today is past USER_MODEL_BUDGET_USD_PER_DAY. */
+  overBudget?: boolean;
 }
 
 /** Gate 5: which writer. Emotional and reflective turns, and behavioral signals after a write, get the strong writer. */
 export function shouldEscalateToSonnet(p: EscalationInput): { escalate: boolean; reason: string | null } {
+  if (p.overBudget) return { escalate: false, reason: "budget" };
   if (p.dailyStrongCount >= p.cap) return { escalate: false, reason: "strong_capped" };
   if (p.intent === "emotional") return { escalate: true, reason: "emotional" };
   if (p.intent === "reflect") return { escalate: true, reason: "reflect" };
@@ -328,27 +331,79 @@ export function reasoningFor(model: string): "off" | "low" {
   return /haiku|luna/i.test(model) ? "off" : "low";
 }
 
+export type WriterReasoning = "off" | "low" | "medium";
+
+export interface WriterPlan {
+  /** Primary writer first, then network fallbacks; never repeats a model. */
+  models: string[];
+  reasoning: WriterReasoning;
+  maxTokens: number;
+}
+
+export interface WriterPlanInput {
+  escalate: boolean;
+  intent: Intent;
+  overBudget: boolean;
+  env: (k: string) => string | undefined;
+}
+
+const DEFAULT_STRONG_WRITER = "anthropic/claude-sonnet-5.5";
+const DEFAULT_LIGHT_WRITER = "anthropic/claude-haiku-5.5";
+/** Anthropic counts hidden reasoning against max_tokens; a strong turn needs room to think and still write two sentences. */
+const STRONG_WRITER_MAX_TOKENS = 1400;
+/** Routine turns are one sentence; low effort on Sonnet still spends a few hundred reasoning tokens on some turns. */
+const ROUTINE_WRITER_MAX_TOKENS = 700;
+const BUDGET_WRITER_MAX_TOKENS = 400;
+
+function strongReasoningFrom(env: (k: string) => string | undefined): WriterReasoning {
+  const v = env("SOUL_STRONG_REASONING");
+  return v === "medium" || v === "off" ? v : "low";
+}
+
+/**
+ * Gate 5, second half: which model writes, how hard it may think, and how long it may run.
+ * Strong turns: SOUL_MODEL at SOUL_STRONG_REASONING (default low). Routine turns: SOUL_LIGHT_MODEL
+ * (small talk: SOUL_CHAT_MODEL) at low effort or off. Over the daily budget: SOUL_BUDGET_MODEL only.
+ */
+export function writerPlan(p: WriterPlanInput): WriterPlan {
+  const small = p.env("SMALL_MODEL") ?? DEFAULT_LIGHT_WRITER;
+  const budgetModel = p.env("SOUL_BUDGET_MODEL") ?? small;
+  if (p.overBudget) return { models: [budgetModel], reasoning: reasoningFor(budgetModel), maxTokens: BUDGET_WRITER_MAX_TOKENS };
+  const strong = p.env("SOUL_MODEL") ?? DEFAULT_STRONG_WRITER;
+  const light = p.env("SOUL_LIGHT_MODEL") ?? small;
+  const chat = p.env("SOUL_CHAT_MODEL") ?? small;
+  if (p.escalate) return { models: dedupeModels([strong, light, small]), reasoning: strongReasoningFrom(p.env), maxTokens: STRONG_WRITER_MAX_TOKENS };
+  const routine = p.intent === "chat" ? chat : light;
+  const maxTokens = /sonnet|opus/i.test(routine) ? ROUTINE_WRITER_MAX_TOKENS : BUDGET_WRITER_MAX_TOKENS;
+  return { models: dedupeModels([routine, light, small]), reasoning: reasoningFor(routine), maxTokens };
+}
+
+function dedupeModels(ids: string[]): string[] {
+  return ids.filter((id, i) => ids.indexOf(id) === i);
+}
+
 export async function writeSoulReply(
-  env: { apiKey: string; models: string[]; strong: boolean },
+  env: { apiKey: string; plan: WriterPlan },
   p: SoulInput,
   sessionId: string,
 ): Promise<SoulResult | null> {
   const user = buildSoulUser(p);
-  for (let i = 0; i < env.models.length; i++) {
-    const models = env.models.slice(i);
+  const chain = env.plan.models;
+  for (let i = 0; i < chain.length; i++) {
+    const models = chain.slice(i);
     try {
-      // Anthropic counts hidden reasoning against max_tokens, and Sonnet at low effort still thinks
-      // a few hundred tokens on some turns, so the budget has to leave room for the line itself.
+      // A fallback model gets its own safe effort setting; the plan's effort applies to the primary.
+      const reasoning: WriterReasoning = i === 0 ? env.plan.reasoning : reasoningFor(models[0]);
       const r = await callPlainText({ apiKey: env.apiKey }, {
         models,
         sessionId,
-        maxTokens: /sonnet|opus/i.test(models[0]) ? 1400 : 400,
+        maxTokens: i === 0 ? env.plan.maxTokens : /sonnet|opus/i.test(models[0]) ? STRONG_WRITER_MAX_TOKENS : BUDGET_WRITER_MAX_TOKENS,
         system: SOUL_PROMPT,
         user,
-        reasoning: reasoningFor(models[0]),
+        reasoning,
       });
       // Reasoning ate the whole budget and nothing came back: let the next writer try before code does.
-      if (r.finishReason === "length" && !r.text.trim() && i < env.models.length - 1) {
+      if (r.finishReason === "length" && !r.text.trim() && i < chain.length - 1) {
         console.error("soul pass empty after length cut", models[0]);
         continue;
       }

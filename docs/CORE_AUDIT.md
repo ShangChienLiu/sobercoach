@@ -38,6 +38,7 @@ Method (pstack "prove it works"): every claim in the six-core spec is paired wit
 | Second separate log within 2 h → strong | same (`entriesLast2h`) | core_probes: `soul:strong:rapid_pacing` | proven |
 | Log between 23:00 and 04:00 local → strong | same (`localHour`) | core_probes: `soul:strong:late_night` at 23:30 Taipei; 19:00 stays `soul:light` | proven |
 | Daily cap of 10 strong attempts | `STRONG_CAP`, `strongCallsSince` counts `strong_call` marks | run.ts scenario 12 2/2; cap visible as `soul:light:capped` in later turns | proven |
+| Per-user daily model budget ($0.15) drops the writer to Haiku and blocks every escalation, fails closed | `chat/index.ts` `USER_BUDGET_USD`, `ledger.userSpendSince` → SQL `ledger_user_spend_since`, `soul.ts shouldEscalateToSonnet` (`budget`) and `writerPlan` | live trip on 2026-11-01 with `USER_MODEL_BUDGET_USD_PER_DAY=0.000001` on the Alex account: "had 4 beers tonight at Dan's, feeling rough" → `small · soul:light:budget` on Haiku, words still delivered; "actually the first beer was 2 and the last one was 3" → `preflight_multi_entry+budget_capped+clarify`; restored to 0.15: same turns `strong · soul:strong:emotional` and `preflight_multi_entry+strong_call` on Sonnet | proven |
 
 ## Core 5: SOUL voice and micro-guard
 

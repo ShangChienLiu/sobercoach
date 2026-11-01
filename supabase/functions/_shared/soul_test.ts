@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { allowedNumbers, buildSoulUser, cutFragment, fallbackWarmReply, postProcessSoulReply, reasoningFor, renderVerifiedState, shouldEscalateToSonnet, SOUL_PROMPT, usedHooks, type VerifiedState } from "./soul.ts";
+import { allowedNumbers, buildSoulUser, cutFragment, fallbackWarmReply, postProcessSoulReply, reasoningFor, renderVerifiedState, shouldEscalateToSonnet, SOUL_PROMPT, usedHooks, type VerifiedState, writerPlan } from "./soul.ts";
 
 const base: VerifiedState = {
   lang: "en", localHour: 20, weekday: "Fri",
@@ -189,4 +189,36 @@ Deno.test("SOUL prompt carries the MI rules: ask before advising, reflect, lapse
   assert(/ask before advising/i.test(SOUL_PROMPT));
   assert(/lapse/i.test(SOUL_PROMPT));
   assert(/never argue/i.test(SOUL_PROMPT) || /roll with/i.test(SOUL_PROMPT));
+});
+
+Deno.test("routing: a user over the daily model budget never gets the strong writer", () => {
+  assertEquals(shouldEscalateToSonnet({ intent: "emotional", state: base, wrote: false, dailyStrongCount: 0, cap: 10, overBudget: true }), { escalate: false, reason: "budget" });
+  assertEquals(shouldEscalateToSonnet({ intent: "log", state: { ...base, weeklyRemaining: -1 }, wrote: true, dailyStrongCount: 0, cap: 10, overBudget: true }), { escalate: false, reason: "budget" });
+});
+
+Deno.test("writer plan: strong turns get the strong writer and its effort; routine turns the light writer; over budget everything drops to the budget writer", () => {
+  const env = (k: string) => ({ SOUL_MODEL: "anthropic/claude-sonnet-5.5", SOUL_LIGHT_MODEL: "anthropic/claude-sonnet-5.5", SOUL_STRONG_REASONING: "medium" } as Record<string, string>)[k];
+  const strong = writerPlan({ escalate: true, intent: "emotional", overBudget: false, env });
+  assertEquals(strong.models[0], "anthropic/claude-sonnet-5.5");
+  assertEquals(strong.reasoning, "medium");
+  assertEquals(strong.maxTokens, 1400);
+
+  const routine = writerPlan({ escalate: false, intent: "log", overBudget: false, env });
+  assertEquals(routine.models[0], "anthropic/claude-sonnet-5.5");
+  assertEquals(routine.reasoning, "low");
+  assertEquals(routine.maxTokens, 700);
+
+  const chat = writerPlan({ escalate: false, intent: "chat", overBudget: false, env });
+  assertEquals(chat.models[0], "anthropic/claude-haiku-5.5");
+  assertEquals(chat.reasoning, "off");
+
+  const broke = writerPlan({ escalate: false, intent: "emotional", overBudget: true, env });
+  assertEquals(broke.models, ["anthropic/claude-haiku-5.5"]);
+  assertEquals(broke.reasoning, "off");
+  assertEquals(broke.maxTokens, 400);
+
+  // Fallback chains never repeat a model.
+  const light = writerPlan({ escalate: true, intent: "reflect", overBudget: false, env: (k: string) => (k === "SOUL_LIGHT_MODEL" ? "anthropic/claude-haiku-5.5" : env(k)) });
+  assertEquals(light.models, ["anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"]);
+  assertEquals(writerPlan({ escalate: true, intent: "reflect", overBudget: false, env }).models, ["anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"]);
 });

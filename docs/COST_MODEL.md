@@ -9,9 +9,10 @@ Budget per heavy user-month: $4.50, covering model calls plus a $0.50 infrastruc
 | Heavy use | 30 free-text messages a day, 900 a month | Spec assumption; quick-log taps are extra and cost $0 |
 | Stress case | 3,000 messages a month | Spec |
 | Small call | 1,500 tokens in, 200 out, Haiku 5.5 at the live OpenRouter list price ($0.10/M in, $0.50/M out, read 2026-10-31) → $0.00025 uncached per call | `_shared/pricing.ts`; OpenRouter's reported `usage.cost` on the first real calls was $0.00048 for a 2,000-token prompt, in line with this |
-| Strong call | Flash-Lite list $0.30/M in, $2.50/M out (measured $0.0012 for one turn); Sonnet 5.5 $2.00/M in, $10.00/M out (about $0.005 a turn). The spec's τ²-Bench per-task figures ($0.0049 / $0.008) stay as the budget ceiling because they include reasoning tokens | Live list prices plus first measured calls |
+| Strong decision call | Sonnet 5.5 $2.00/M in, $10.00/M out at low effort: a multi-entry edit measured $0.018 for the whole turn (decision pass plus writer) on 2026-11-01, $0.024 before effort was set. Flash-Lite ($0.0012 a turn) held this slot until 2026-11-01; see DECISION_RECORD | Live list prices plus measured turns |
 | Escalation | 15% of messages (budget), measured by ledger | Spec |
-| Strong cap | 10 calls per user per day | `STRONG_CALLS_PER_USER_PER_DAY` |
+| Strong cap | 10 strong attempts per user per day (decision retries and strong-writer turns) | `STRONG_CALLS_PER_USER_PER_DAY` |
+| User budget | $0.15 of model spend per user per service day; past it the writer drops to the budget model (Haiku) and nothing escalates. 30 × $0.15 = $4.50, the spec ceiling | `USER_MODEL_BUDGET_USD_PER_DAY`, `SOUL_BUDGET_MODEL`; `ledger_user_spend_since` summed in SQL, fails closed |
 | Extras | 30 reminder drafts, 4 memory summaries, 10% retry reserve, 5.5% OpenRouter fee | Spec |
 
 ## Where the ceiling lands
@@ -48,9 +49,10 @@ Per-turn Sonnet writer cost is $0.002 to $0.008 depending on prompt-cache hits o
 |---|---|---|---|
 | 900 msgs, deployed config at the measured average $0.0025 per turn (tool pass + writer, dream included) | 900 × $0.0025 = $2.25 → ×1.10 retry ×1.055 fee = $2.61 | $0.50 | **$3.11** |
 | 900 msgs, Haiku light writer (cheapest usable) | 900 × $0.0016 = $1.44 → $1.67 | $0.50 | $2.17 |
-| 3,000 msgs, deployed config | $7.50 → $8.70 | $0.50 | $9.20, so the global breaker and a per-user daily soul budget are the backstops; the 10-a-day strong cap only limits the strong *route*, not the Sonnet light writer |
+| 3,000 msgs, deployed config, no user budget | $7.50 → $8.70 | $0.50 | $9.20 |
+| 3,000 msgs with the $0.15 daily user budget (from 2026-11-01) | at most 30 × $0.15 = $4.50 of model spend, the rest of the day on the Haiku budget writer | $0.50 | **$5.00 hard bound**; the heavy profile never reaches the budget ($0.075 a day at the measured average) |
 
-The spec's $4.50 ceiling holds for the heavy profile; the stress profile needs either the Haiku light writer or a per-user daily writer cap, both one secret away (`SOUL_LIGHT_MODEL`, `STRONG_CALLS_PER_USER_PER_DAY`).
+The spec's $4.50 ceiling holds for the heavy profile on the measured average. The stress profile is now bounded by the per-user daily budget rather than by hope: once a user has spent $0.15 in a service day, routine and hard turns alike are written by `SOUL_BUDGET_MODEL` (Haiku) and no decision retry or strong-writer escalation fires until the next service day. Verified live on 2026-11-01 by setting the budget to $0.000001: a four-beer log came back `soul:light:budget` on Haiku, a multi-entry edit `preflight_multi_entry+budget_capped`; restored to $0.15 the same turns went `soul:strong` and `strong_call` on Sonnet.
 
 ## What the ledger records per message
 

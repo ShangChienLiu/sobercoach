@@ -17,16 +17,16 @@ import { buildTurnContext, loadDailyTotal, loadProfile, loadWeekly, renderContex
 import { instantAtLocal, serviceDate } from "../_shared/service_day.ts";
 import { callStructured, OpenRouterError } from "../_shared/openrouter.ts";
 import { ENVELOPE_SCHEMA, type Envelope, type Intent, STRONG_ADDENDUM, SYSTEM_PROMPT } from "../_shared/prompt.ts";
-import { modelForTier } from "../_shared/pricing.ts";
+import { modelChainFor, modelForTier } from "../_shared/pricing.ts";
 import { correctEntry, type EntryCard, executeTool, logDrink, renderSummaryLine, type ToolOutcome, undoEntry } from "../_shared/tools_exec.ts";
 import type { WeeklyTotals } from "../_shared/context.ts";
-import { globalSpendLast24h, type LedgerTier, strongCallsSince, touchLastOpened, writeLedger } from "../_shared/ledger.ts";
+import { globalSpendLast24h, type LedgerTier, strongCallsSince, touchLastOpened, userSpendSince, writeLedger } from "../_shared/ledger.ts";
 import { parseCount, stdDrinksNominal } from "../_shared/drinks.ts";
 import { cardFor } from "../_shared/tools_exec.ts";
 import { normalizeEntry } from "../_shared/context.ts";
 import { validateEnvelope } from "../_shared/envelope.ts";
 import { mockEnvelope } from "../_shared/mock_model.ts";
-import { allowedNumbers, fallbackWarmReply, mockSoulLine, postProcessSoulReply, shouldEscalateToSonnet, usedHooks, type VerifiedState, writeSoulReply } from "../_shared/soul.ts";
+import { allowedNumbers, fallbackWarmReply, mockSoulLine, postProcessSoulReply, reasoningFor, shouldEscalateToSonnet, usedHooks, type VerifiedState, writeSoulReply, writerPlan } from "../_shared/soul.ts";
 import { DREAM_EVERY_TURNS, runDreamPass } from "../_shared/dream.ts";
 import { labelEventTime, labelServiceDate, localParts } from "../_shared/service_day.ts";
 import { beverageLabel } from "../_shared/drinks.ts";
@@ -69,6 +69,8 @@ interface ChatState {
   today_service_date: string;
   strong_calls_today: number;
   strong_cap: number;
+  spend_today_usd: number;
+  daily_budget_usd: number;
 }
 
 interface ChatData {
@@ -86,6 +88,8 @@ interface ChatData {
 
 const STRONG_CAP = Number(env("STRONG_CALLS_PER_USER_PER_DAY") ?? "10");
 const GLOBAL_BREAKER_USD = Number(env("GLOBAL_DAILY_SPEND_USD") ?? "25");
+/** Per-user daily model budget; past it the writer drops to the budget model and nothing escalates. $0.15 a day is the $4.50 monthly ceiling. */
+const USER_BUDGET_USD = Number(env("USER_MODEL_BUDGET_USD_PER_DAY") ?? "0.15");
 /** Marker appended to route_reason whenever a strong model is called; the daily cap counts it. */
 export const STRONG_CALL_MARK = "strong_call";
 
@@ -158,8 +162,8 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
   const profile = await loadProfile(db, userId);
   const todayService = serviceDate(now, profile.timezone, profile.rollover_hour);
   const dayStartIso = instantAtLocal(todayService, profile.rollover_hour, 0, profile.timezone).toISOString();
-  const strongToday = await strongCallsSince(svc, userId, dayStartIso);
-  const built = await buildTurnContext(db, userId, now, strongToday);
+  const [strongToday, spendToday] = await Promise.all([strongCallsSince(svc, userId, dayStartIso), userSpendSince(svc, userId, dayStartIso)]);
+  const built = await buildTurnContext(db, userId, now, strongToday, spendToday);
   const ctx: TurnContext = { ...built, lang: detectLang(message || built.lastMessages.at(-1)?.content || ""), userMessage: message || undefined };
 
   // Structured client actions never touch a model.
@@ -230,9 +234,10 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
     const preHint: Intent | null = pre?.reason === "preflight_emotional" ? "emotional" : pre?.reason === "preflight_reflection" ? "reflect" : null;
     let toolTier: "small" | "strong" = pre?.route === "strong" && pre.reason === "preflight_multi_entry" ? "strong" : "small";
     routeReason = pre?.reason ?? (injection ? "injection_guard" : "default_small");
-    if (toolTier === "strong" && ctx.strongCallsToday >= STRONG_CAP) {
+    const overBudget = ctx.spendTodayUsd >= USER_BUDGET_USD;
+    if (toolTier === "strong" && (ctx.strongCallsToday >= STRONG_CAP || overBudget)) {
       toolTier = "small";
-      routeReason = `${routeReason}+strong_capped`;
+      routeReason = `${routeReason}+${overBudget ? "budget_capped" : "strong_capped"}`;
     }
     if (toolTier === "strong") routeReason = `${routeReason}+${STRONG_CALL_MARK}`;
     let result = await callModel(ctx, toolTier, message);
@@ -244,7 +249,9 @@ async function handleTurn(input: TurnInput): Promise<ChatData> {
     // Escalation: the small model asked, or its output failed validation.
     const wantsEscalation = envelope?.tool_calls.some((t) => t.name === "escalate") ?? false;
     if (toolTier === "small" && (!envelope || wantsEscalation)) {
-      if (ctx.strongCallsToday < STRONG_CAP) {
+      if (overBudget) {
+        routeReason = `${routeReason}+budget_capped`;
+      } else if (ctx.strongCallsToday < STRONG_CAP) {
         const why = !envelope ? "small_schema_invalid" : `small_escalate:${String(envelope.tool_calls.find((t) => t.name === "escalate")?.args.text ?? envelope.tool_calls.find((t) => t.name === "escalate")?.args.reason ?? "")}`;
         routeReason = `${why}+${STRONG_CALL_MARK}`;
         const second = await callModel(ctx, "strong", message);
@@ -418,7 +425,7 @@ async function callModel(ctx: TurnContext, tier: "small" | "strong", message: st
     return { ok: true, value: mockEnvelope(ctx, tier, message) };
   }
   const route = modelForTier(tier, env);
-  const models = tier === "strong" ? [route.id, modelForTier("strong_fallback", env).id] : [route.id, modelForTier("strong", env).id];
+  const models = modelChainFor(tier, env);
   const providerOrder = (env(tier === "strong" ? "STRONG_PROVIDER_ORDER" : "SMALL_PROVIDER_ORDER") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
   const systemText = SYSTEM_PROMPT + (tier === "strong" ? STRONG_ADDENDUM : "");
@@ -430,6 +437,8 @@ async function callModel(ctx: TurnContext, tier: "small" | "strong", message: st
       providerOrder,
       sessionId: ctx.userId,
       maxTokens: tier === "strong" ? 1000 : 900,
+      // The envelope is a decision, not prose: Sonnet must not think at default effort on it.
+      reasoning: tier === "strong" ? reasoningFor(models[0]) : undefined,
       schema: ENVELOPE_SCHEMA as unknown as { name: string; strict: boolean; schema: Record<string, unknown> },
       messages: [
         { role: "system", content: [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }] },
@@ -582,8 +591,10 @@ async function finishTurn(
     const state = await verifiedStateFor(db, ctx2, profile, weekly, today, succeeded, confirmations, factLine);
     const wrote = succeeded.some((o) => ["log_drink", "correct_entry", "undo_entry", "add_event", "update_event", "set_goal", "set_reminder_pref", "mark_dry"].includes(o.name));
     const strongUsedThisTurn = routeReason.includes(STRONG_CALL_MARK) ? 1 : 0;
-    const route = shouldEscalateToSonnet({ intent, state, wrote, dailyStrongCount: ctx.strongCallsToday + strongUsedThisTurn, cap: STRONG_CAP });
-    routeReason = `${routeReason}+soul:${route.escalate ? `strong:${route.reason}` : route.reason === "strong_capped" ? "light:capped" : "light"}`;
+    const overBudget = ctx.spendTodayUsd + cost >= USER_BUDGET_USD;
+    const route = shouldEscalateToSonnet({ intent, state, wrote, dailyStrongCount: ctx.strongCallsToday + strongUsedThisTurn, cap: STRONG_CAP, overBudget });
+    const writerLabel = route.escalate ? `strong:${route.reason}` : route.reason === "budget" ? "light:budget" : route.reason === "strong_capped" ? "light:capped" : "light";
+    routeReason = `${routeReason}+soul:${writerLabel}`;
     if (route.escalate) routeReason = `${routeReason}+${STRONG_CALL_MARK}`;
     const apiKey = env("OPENROUTER_API_KEY") ?? "";
     const allowed = allowedNumbers(state, userMessage, ctx.memory, profile.soul_profile ?? "", ...ctx.events.map((e) => e.title));
@@ -592,13 +603,9 @@ async function finishTurn(
       raw = mockSoulLine(state, intent);
       modelUsed = modelUsed ?? "mock/soul";
     } else if (apiKey) {
-      const strongModel = env("SOUL_MODEL") ?? "anthropic/claude-sonnet-5.5";
-      const lightModel = env("SOUL_LIGHT_MODEL") ?? modelForTier("small", env).id;
-      // Small talk (greetings, thanks, off-topic) is cheap to write well; logs and edits get the light writer.
-      const chatModel = env("SOUL_CHAT_MODEL") ?? modelForTier("small", env).id;
-      const routine = intent === "chat" ? chatModel : lightModel;
-      const models = route.escalate ? [strongModel, lightModel] : [routine, routine === lightModel ? modelForTier("small", env).id : lightModel];
-      const soul = await writeSoulReply({ apiKey, models, strong: route.escalate }, {
+      // Strong turns: SOUL_MODEL at SOUL_STRONG_REASONING. Routine: SOUL_LIGHT_MODEL (small talk: SOUL_CHAT_MODEL). Over budget: SOUL_BUDGET_MODEL.
+      const plan = writerPlan({ escalate: route.escalate, intent, overBudget, env });
+      const soul = await writeSoulReply({ apiKey, plan }, {
         state,
         intent,
         userMessage,
@@ -714,6 +721,8 @@ function finish(
       today_service_date: ctx.todayService,
       strong_calls_today: ctx.strongCallsToday,
       strong_cap: STRONG_CAP,
+      spend_today_usd: Math.round(ctx.spendTodayUsd * 1e6) / 1e6,
+      daily_budget_usd: USER_BUDGET_USD,
     },
     cost_usd: Math.round(cost * 1e6) / 1e6,
     latency_ms: Date.now() - started,
